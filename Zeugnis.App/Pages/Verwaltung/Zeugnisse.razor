@@ -1,0 +1,55 @@
+@page "/verwaltung/zeugnisse"
+@inherits AdminPageBase
+
+<PageTitle>Zeugnisse – Verwaltung</PageTitle>
+
+<AdminFrame Error="@Error" Success="@Success">
+    @if (File is { } f)
+    {
+        @if (f.Classes.Count == 0)
+        {
+            <div class="card"><p class="muted">Bitte zuerst <a href="verwaltung/klassen">Klassen</a> und <a href="verwaltung/schueler">Schüler</a> anlegen.</p></div>
+        }
+        else
+        {
+            <div class="toolbar">
+                <label class="field compact">
+                    <span>Klasse</span>
+                    <select @onchange="e => SelectClass(e.Value?.ToString())">
+                        @foreach (var c in f.Classes)
+                        {
+                            <option value="@c.Name" selected="@(c.Name == _class)">@c.Name</option>
+                        }
+                    </select>
+                </label>
+                <p class="muted toolbar-note">
+                    Hier bearbeitet die Verwaltung die Werte direkt in der Schuldatei.
+                    Änderungen an Feldern, die gerade bei einer Lehrkraft liegen, werden beim Zusammenführen als Konflikt angezeigt.
+                </p>
+            </div>
+
+            @if (_context is { } ctx)
+            {
+                <GradingView @key="_class" Context="ctx" OnChanged="Session.MarkDirty" />
+            }
+        }
+    }
+</AdminFrame>
+
+@code {
+    private string? _class;
+    private GradingContext? _context;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        SelectClass(File?.Classes.FirstOrDefault()?.Name);
+    }
+
+    private void SelectClass(string? name)
+    {
+        if (File is null || name is null) { _context = null; return; }
+        _class = name;
+        _context = GradingContext.ForSchoolClass(File, name);
+    }
+}

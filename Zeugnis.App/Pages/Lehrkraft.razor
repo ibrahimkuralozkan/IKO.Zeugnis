@@ -5,42 +5,140 @@
 
 <PageTitle>Lehrkraft – Zeugnis</PageTitle>
 
-<h1>Lehrkraft</h1>
-
-@if (Session.Assignment is not { } a)
+@if (Session.Assignment is not { } a || Session.Grading is not { } ctx)
 {
-    <OpenFileForm Title="Arbeitsauftrag öffnen" Accept=".zauftrag"
-                  Hint="Die Datei erhalten Sie von der Verwaltung, das Kennwort auf einem anderen Weg."
-                  OnOpen="Session.OpenAsync" />
+    <h1>Lehrkraft</h1>
+    <div class="two-col">
+        <OpenFileForm Title="Arbeitsauftrag öffnen" Accept=".zauftrag"
+                      Hint="Die Datei erhalten Sie von der Verwaltung, das Kennwort auf einem anderen Weg."
+                      OnOpen="Session.OpenAsync" />
+        <div class="card">
+            <h2>So geht es</h2>
+            <ol class="steps">
+                <li>Arbeitsauftrag (<code>.zauftrag</code>) aus LOGINEO laden und hier mit dem Kennwort öffnen.</li>
+                <li>Bewertungen eintragen. Der Zwischenstand wird verschlüsselt auf diesem Gerät gesichert.</li>
+                <li>„Rückgabe erstellen“ und die <code>.zantwort</code>-Datei in LOGINEO ablegen.</li>
+            </ol>
+            <p class="muted">Korrekturen sind jederzeit möglich: Auftrag erneut öffnen, ändern, neue Rückgabe senden.</p>
+        </div>
+    </div>
 }
 else
 {
-    <div class="card">
-        <div class="card-head">
-            <div>
-                <h2>@a.Label · Klasse @a.ClassName</h2>
-                <p class="muted">@a.SchoolName · @a.Term · für @a.TeacherName</p>
-            </div>
-            <button class="btn" @onclick="Session.Close">Schließen</button>
+    var total = ctx.TotalProgress();
+    <div class="admin-head">
+        <div>
+            <h1>@a.Label · Klasse @a.ClassName</h1>
+            <p class="muted">
+                @a.SchoolName · @a.Term · @a.TeacherName · Abgabe bis @a.ExpiresUtc.ToLocalTime().ToString("dd.MM.yyyy")
+            </p>
         </div>
-        <dl class="facts">
-            <div><dt>Schüler</dt><dd>@a.Students.Count</dd></div>
-            <div><dt>Bereiche</dt><dd>@a.Catalogs.SelectMany(c => c.Sections).Select(s => s.Title).Distinct().Count()</dd></div>
-            <div><dt>Abgabe bis</dt><dd>@a.ExpiresUtc.ToLocalTime().ToString("dd.MM.yyyy")</dd></div>
-        </dl>
-        <p class="alert info">Die Bewertungsansicht folgt in Version 0.3.</p>
-        <button class="btn primary" @onclick="DownloadResponseAsync">Rückgabe erstellen</button>
+        <div class="actions">
+            <button class="btn primary" @onclick="CreateResponseAsync" disabled="@_busy">Rückgabe erstellen</button>
+            <button class="btn" @onclick="CloseAsync">Schließen</button>
+        </div>
     </div>
+
+    <div class="status-line">
+        <span>@total.Filled von @total.Total Feldern ausgefüllt</span>
+        <span class="draft-state @Session.Draft.ToString().ToLowerInvariant()">@DraftText()</span>
+    </div>
+
+    @if (Session.RestoredFromUtc is { } restored && !_restoredSeen)
+    {
+        <div class="alert info">
+            Zwischenstand vom @restored.ToLocalTime().ToString("dd.MM.yyyy HH:mm") wurde wiederhergestellt.
+            <div>
+                <button class="btn" @onclick="() => _restoredSeen = true">OK</button>
+            </div>
+        </div>
+    }
+    @if (a.ExpiresUtc < DateTimeOffset.UtcNow)
+    {
+        <p class="alert warn">Die Abgabefrist ist abgelaufen. Eine Rückgabe wird von der Verwaltung nicht mehr angenommen. Bitte neuen Auftrag anfordern.</p>
+    }
+    @if (_response is not null)
+    {
+        <div class="alert success">
+            Rückgabe <strong>@_response</strong> wurde erstellt (@(_responseProgress.Filled) von @(_responseProgress.Total) Feldern).
+            Bitte in LOGINEO ablegen. Das Kennwort bleibt dasselbe wie beim Auftrag.
+            @if (!_responseProgress.IsComplete)
+            {
+                <br /><span>Hinweis: Es sind noch nicht alle Felder ausgefüllt. Sie können später eine weitere Rückgabe senden.</span>
+            }
+        </div>
+    }
+    @if (_error is not null)
+    {
+        <p class="alert error" role="alert">@_error</p>
+    }
+
+    <GradingView Context="ctx" OnChanged="Session.MarkChanged" />
+
+    <details class="card device-draft">
+        <summary>Zwischenstand auf diesem Gerät</summary>
+        <p class="muted">
+            Der Zwischenstand liegt verschlüsselt im Speicher dieses Browsers und lässt sich nur mit dem Auftragskennwort öffnen.
+            Auf einem gemeinsam genutzten Gerät nach Abgabe löschen.
+        </p>
+        @if (_confirmDiscard)
+        {
+            <button class="btn danger" @onclick="DiscardAsync">Zwischenstand wirklich löschen</button>
+            <button class="btn" @onclick="() => _confirmDiscard = false">Abbrechen</button>
+        }
+        else
+        {
+            <button class="btn" @onclick="() => _confirmDiscard = true" disabled="@(Session.Draft == DraftState.None)">Zwischenstand löschen</button>
+        }
+    </details>
 }
 
 @code {
+    private bool _busy;
+    private bool _restoredSeen;
+    private bool _confirmDiscard;
+    private string? _response;
+    private Progress _responseProgress;
+    private string? _error;
+
     protected override void OnInitialized() => Session.Changed += Refresh;
     public void Dispose() => Session.Changed -= Refresh;
     private void Refresh() => InvokeAsync(StateHasChanged);
 
-    private async Task DownloadResponseAsync()
+    private string DraftText() => Session.Draft switch
     {
-        var (bytes, name) = await Session.CreateResponseAsync();
-        await Files.DownloadAsync(bytes, name);
+        DraftState.Pending => "Wird gesichert …",
+        DraftState.Saved => $"Gesichert {Session.DraftSavedUtc?.ToLocalTime():HH:mm}",
+        DraftState.Failed => "Sicherung fehlgeschlagen – bitte Rückgabe erstellen",
+        _ => "",
+    };
+
+    private async Task CreateResponseAsync()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            _responseProgress = Session.Grading!.TotalProgress();
+            var (bytes, name) = await Session.CreateResponseAsync();
+            await Files.DownloadAsync(bytes, name);
+            _response = name;
+        }
+        catch (ExchangeSecurityException ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task CloseAsync()
+    {
+        await Session.CloseAsync();
+        _response = null;
+        _restoredSeen = false;
+        _confirmDiscard = false;
+    }
+
+    private async Task DiscardAsync()
+    {
+        await Session.DiscardDraftAsync();
+        _confirmDiscard = false;
     }
 }

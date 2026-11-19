@@ -217,3 +217,82 @@ ol.items li::before { counter-increment: item; content: counter(item) "."; color
 ol.items textarea, ol.items input { flex: 1; min-height: 40px; padding: .45rem .6rem; resize: vertical; field-sizing: content; }
 .add-item { display: flex; gap: .5rem; margin-left: 2.1rem; }
 .add-item input { flex: 1; min-height: 40px; }
+
+/* ---------- Bewertung (v0.3) ---------- */
+.steps { padding-left: 1.2rem; margin: 0 0 1rem; }
+.steps li { margin-bottom: .4rem; }
+.toolbar-note { flex: 1 1 20rem; margin: 0; font-size: .9rem; }
+.status-line { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; color: var(--muted); font-size: .92rem; margin: -.25rem 0 .75rem; }
+.draft-state.saved { color: var(--ok-fg); }
+.draft-state.failed { color: var(--err-fg); font-weight: 600; }
+.ok-text { color: var(--ok-fg); font-weight: 600; }
+
+.grading { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 1rem; align-items: start; }
+.student-list { position: sticky; top: .75rem; padding: .9rem; max-height: calc(100vh - 1.5rem); overflow-y: auto; margin: 0; }
+.student-list .list-head { display: flex; justify-content: space-between; align-items: baseline; }
+.student-list ul { list-style: none; padding: 0; margin: .5rem 0 0; display: flex; flex-direction: column; gap: 2px; }
+.student {
+    width: 100%; display: flex; justify-content: space-between; gap: .5rem; align-items: center; text-align: left;
+    font: inherit; font-size: .95rem; padding: .55rem .6rem; min-height: 44px; border-radius: 9px;
+    border: 1px solid transparent; background: none; color: var(--text); cursor: pointer;
+}
+.student:hover { background: var(--bg); }
+.student.active { background: var(--info-bg); border-color: var(--primary); color: var(--info-fg); font-weight: 600; }
+.student .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.student .count { font-size: .8rem; color: var(--muted); flex: none; }
+.student.done .count { color: var(--ok-fg); font-weight: 700; }
+.small-check { font-size: .88rem; margin-top: .6rem; }
+.progress-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin: .4rem 0; }
+.progress-bar span { display: block; height: 100%; background: var(--primary); transition: width .2s; }
+
+.student-head { display: flex; align-items: center; gap: .75rem; padding: .9rem; }
+.student-head .who { flex: 1; min-width: 0; text-align: center; }
+.student-head h2 { margin: 0; }
+.student-head .muted { margin: .2rem 0 0; font-size: .9rem; }
+.btn.nav { font-size: 1.6rem; line-height: 1; min-width: 52px; }
+
+.grade-section h3 { margin: 0 0 .75rem; font-size: 1.08rem; }
+.rating-table { display: flex; flex-direction: column; gap: .35rem; }
+.rating-head, .rating-row { display: grid; grid-template-columns: minmax(0, 1fr) repeat(var(--steps), 84px); gap: .35rem; align-items: stretch; }
+.rating-head span { font-size: .72rem; color: var(--muted); text-align: center; line-height: 1.2; align-self: end; }
+.rating-row { padding: .25rem 0; border-top: 1px solid var(--border); }
+.rating-row .criterion { align-self: center; padding-right: .5rem; }
+.rating-row.empty .criterion::after { content: " •"; color: var(--warn-fg); }
+.choice {
+    font: inherit; min-height: 48px; border-radius: 10px; cursor: pointer;
+    border: 1.5px solid var(--border); background: var(--bg); color: var(--text);
+    display: grid; place-items: center; padding: 0;
+}
+.choice .mark { font-size: 1.3rem; font-weight: 800; line-height: 1; }
+.choice .lbl { display: none; }
+.choice.on { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
+.choice:hover:not(.on) { border-color: var(--primary); }
+
+.chips { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.chip {
+    font: inherit; font-weight: 700; min-width: 52px; min-height: 52px; border-radius: 12px; cursor: pointer;
+    border: 1.5px solid var(--border); background: var(--bg); color: var(--text); padding: 0 .9rem;
+}
+.chip.wide { font-weight: 600; text-align: left; }
+.chip.on { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
+.chip:hover:not(.on) { border-color: var(--primary); }
+.grade-word { margin-left: .4rem; }
+.report-text { min-height: 7rem; resize: vertical; line-height: 1.5; }
+.step-footer { display: flex; justify-content: space-between; gap: .75rem; margin: .5rem 0 1rem; }
+.device-draft summary { cursor: pointer; font-weight: 600; }
+.device-draft .btn { margin-right: .4rem; }
+
+/* iPad hochkant / schmale Fenster: Schülerliste oben, Skala unter dem Kriterium */
+@media (max-width: 900px) {
+    .grading { grid-template-columns: 1fr; }
+    .student-list { position: static; max-height: 15rem; }
+}
+@media (max-width: 640px) {
+    .rating-head { display: none; }
+    .rating-row { grid-template-columns: repeat(var(--steps), minmax(0, 1fr)); }
+    .rating-row .criterion { grid-column: 1 / -1; padding: .2rem 0; }
+    .choice { min-height: 56px; padding: .3rem; }
+    .choice .lbl { display: block; font-size: .68rem; line-height: 1.15; }
+    .choice .mark { font-size: 1.1rem; }
+    .choice.on .lbl { color: var(--primary-text); }
+}

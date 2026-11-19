@@ -47,5 +47,20 @@ window.zeugnis = (() => {
   window.addEventListener("beforeunload", e => { if (guard) { e.preventDefault(); e.returnValue = ""; } });
   const setUnloadGuard = active => { guard = !!active; };
 
-  return { encrypt, decrypt, download, isSecure, setUnloadGuard };
+  const scrollToMain = () => {
+    const el = document.querySelector(".grading-main");
+    if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Verschlüsselte Entwürfe im Gerätespeicher (Inhalt ist bereits mit dem Auftragskennwort verschlüsselt).
+  const draftPrefix = "zeugnis.draft.";
+  const draft = {
+    get: id => { try { return localStorage.getItem(draftPrefix + id); } catch { return null; } },
+    set: (id, base64) => {
+      try { localStorage.setItem(draftPrefix + id, base64); return true; } catch { return false; }
+    },
+    remove: id => { try { localStorage.removeItem(draftPrefix + id); } catch { } },
+  };
+
+  return { encrypt, decrypt, download, isSecure, setUnloadGuard, scrollToMain, draft };
 })();

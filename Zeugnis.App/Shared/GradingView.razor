@@ -1,0 +1,202 @@
+@* Bewertungsansicht für Lehrkraft und Verwaltung. Touch-optimiert: große Schaltflächen, erneutes Tippen hebt auf. *@
+@inject IJSRuntime JS
+
+@if (Context.Students.Count == 0)
+{
+    <div class="card"><p class="muted">Keine Schüler.</p></div>
+}
+else
+{
+    var total = Context.TotalProgress();
+    <div class="grading">
+        <aside class="student-list card" aria-label="Schüler">
+            <div class="list-head">
+                <strong>@Context.Students.Count Schüler</strong>
+                <span class="muted">@Percent(total) %</span>
+            </div>
+            <div class="progress-bar" role="progressbar" aria-valuenow="@Percent(total)" aria-valuemin="0" aria-valuemax="100">
+                <span style="width:@(Percent(total))%"></span>
+            </div>
+            <label class="check small-check">
+                <input type="checkbox" @bind="_onlyOpen" />
+                <span>nur unvollständige</span>
+            </label>
+            <ul>
+                @foreach (var s in VisibleStudents)
+                {
+                    var p = Context.ProgressOf(s);
+                    <li>
+                        <button class="student @(s == Current ? "active" : "") @(p.IsComplete ? "done" : "")"
+                                @onclick="() => Select(s)" aria-current="@(s == Current ? "true" : null)">
+                            <span class="name">@s.LastName, @s.FirstName</span>
+                            <span class="count">@(p.IsComplete ? "✓" : $"{p.Filled}/{p.Total}")</span>
+                        </button>
+                    </li>
+                }
+            </ul>
+        </aside>
+
+        <div class="grading-main">
+            @if (Current is { } st)
+            {
+                var index = IndexOf(st);
+                var p = Context.ProgressOf(st);
+                var sections = Context.SectionsFor(st);
+                <div class="student-head card">
+                    <button class="btn nav" @onclick="() => Step(-1)" disabled="@(index == 0)" aria-label="vorheriger Schüler">‹</button>
+                    <div class="who">
+                        <h2>@st.FirstName @st.LastName</h2>
+                        <p class="muted">
+                            @st.ClassName · @Labels.Of(st.Track) · @(index + 1) von @Context.Students.Count ·
+                            <span class="@(p.IsComplete ? "ok-text" : "")">@p.Filled/@p.Total ausgefüllt</span>
+                        </p>
+                    </div>
+                    <button class="btn nav" @onclick="() => Step(1)" disabled="@(index == Context.Students.Count - 1)" aria-label="nächster Schüler">›</button>
+                </div>
+
+                @if (Context.CatalogFor(st) is null)
+                {
+                    <p class="alert warn">Für Klasse @st.ClassName (@Labels.Of(st.Track)) gibt es keinen Katalog.</p>
+                }
+                else if (sections.Count == 0)
+                {
+                    <p class="alert info">Für diesen Schüler sind keine Bereiche freigegeben.</p>
+                }
+
+                @foreach (var g in sections)
+                {
+                    var scale = Context.CatalogFor(st)!.RatingScale;
+                    <section class="card grade-section" @key="@($"{st.Id}|{g.Section.Kind}|{g.Section.Key}")">
+                        <h3>@g.Section.Title</h3>
+                        @switch (g.Section.Kind)
+                        {
+                            case FieldKind.Rating:
+                                <div class="rating-table" style="--steps:@scale.Count">
+                                    <div class="rating-head" aria-hidden="true">
+                                        <span></span>
+                                        @foreach (var label in scale)
+                                        {
+                                            <span>@label</span>
+                                        }
+                                    </div>
+                                    @for (var i = 0; i < g.Items.Count; i++)
+                                    {
+                                        var item = g.Items[i];
+                                        var key = g.Keys[i];
+                                        var value = Context.Get(st, key);
+                                        <div class="rating-row @(value.Length == 0 ? "empty" : "")" role="radiogroup" aria-label="@item.Text">
+                                            <span class="criterion">@item.Text</span>
+                                            @for (var n = 1; n <= scale.Count; n++)
+                                            {
+                                                var v = n.ToString();
+                                                <button class="choice @(value == v ? "on" : "")" role="radio" aria-checked="@(value == v ? "true" : "false")"
+                                                        title="@scale[n - 1]" @onclick="() => Toggle(st, key, v)">
+                                                    <span class="mark">@(value == v ? "✕" : "")</span>
+                                                    <span class="lbl">@scale[n - 1]</span>
+                                                </button>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                                break;
+
+                            case FieldKind.Grade:
+                                var grade = Context.Get(st, g.Keys[0]);
+                                <div class="chips" role="radiogroup" aria-label="Note @g.Section.Title">
+                                    @for (var n = 1; n <= 6; n++)
+                                    {
+                                        var v = n.ToString();
+                                        <button class="chip @(grade == v ? "on" : "")" role="radio" aria-checked="@(grade == v ? "true" : "false")"
+                                                @onclick="() => Toggle(st, g.Keys[0], v)">@v</button>
+                                    }
+                                    <span class="muted grade-word">@GradeWord(grade)</span>
+                                </div>
+                                break;
+
+                            case FieldKind.Selection:
+                                var sel = Context.Get(st, g.Keys[0]);
+                                <div class="chips wrap" role="radiogroup" aria-label="@g.Section.Title">
+                                    @foreach (var opt in g.Items)
+                                    {
+                                        <button class="chip wide @(sel == opt.Id ? "on" : "")" role="radio" aria-checked="@(sel == opt.Id ? "true" : "false")"
+                                                @onclick="() => Toggle(st, g.Keys[0], opt.Id)">@opt.Text</button>
+                                    }
+                                </div>
+                                break;
+
+                            default:
+                                var text = Context.Get(st, g.Keys[0]);
+                                <textarea class="report-text" rows="4" value="@text" aria-label="@g.Section.Title"
+                                          @oninput="e => SetText(st, g.Keys[0], e.Value?.ToString() ?? string.Empty)"></textarea>
+                                <div class="muted small">@text.Length Zeichen</div>
+                                break;
+                        }
+                    </section>
+                }
+
+                <div class="step-footer">
+                    <button class="btn" @onclick="() => Step(-1)" disabled="@(index == 0)">‹ Vorheriger</button>
+                    <button class="btn primary" @onclick="() => Step(1)" disabled="@(index == Context.Students.Count - 1)">Nächster ›</button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public GradingContext Context { get; set; } = default!;
+    /// <summary>Wird nach jeder Änderung aufgerufen (Speicherstatus, Entwurf).</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private Guid? _currentId;
+    private bool _onlyOpen;
+
+    private Student? Current
+    {
+        get
+        {
+            var s = Context.Students.FirstOrDefault(x => x.Id == _currentId) ?? Context.Students.FirstOrDefault();
+            _currentId = s?.Id;
+            return s;
+        }
+    }
+
+    private IEnumerable<Student> VisibleStudents =>
+        _onlyOpen ? Context.Students.Where(s => s == Current || !Context.ProgressOf(s).IsComplete) : Context.Students;
+
+    private int IndexOf(Student s) => Context.Students.ToList().IndexOf(s);
+
+    private static int Percent(Progress p) => p.Total == 0 ? 0 : (int)Math.Round(100.0 * p.Filled / p.Total);
+
+    private static string GradeWord(string g) => g switch
+    {
+        "1" => "sehr gut", "2" => "gut", "3" => "befriedigend", "4" => "ausreichend", "5" => "mangelhaft", "6" => "ungenügend",
+        _ => "",
+    };
+
+    private async Task Select(Student s)
+    {
+        _currentId = s.Id;
+        await JS.InvokeVoidAsync("zeugnis.scrollToMain");
+    }
+
+    private void Step(int delta)
+    {
+        if (Current is not { } s) return;
+        var list = Context.Students;
+        var i = Math.Clamp(IndexOf(s) + delta, 0, list.Count - 1);
+        _currentId = list[i].Id;
+        _ = JS.InvokeVoidAsync("zeugnis.scrollToMain");
+    }
+
+    private async Task Toggle(Student s, string key, string value)
+    {
+        var next = Context.Get(s, key) == value ? "" : value;
+        if (Context.Set(s, key, next, DateTimeOffset.UtcNow)) await OnChanged.InvokeAsync();
+    }
+
+    private async Task SetText(Student s, string key, string value)
+    {
+        if (Context.Set(s, key, value, DateTimeOffset.UtcNow)) await OnChanged.InvokeAsync();
+    }
+}

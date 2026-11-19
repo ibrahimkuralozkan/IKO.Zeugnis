@@ -1,3 +1,4 @@
+using Microsoft.JSInterop;
 using Zeugnis.Domain;
 using Zeugnis.Exchange;
 
@@ -74,38 +75,140 @@ public sealed class SchoolSession(EnvelopeCodec codec)
     }
 }
 
-/// <summary>Geöffneter Arbeitsauftrag einer Lehrkraft (nur im Arbeitsspeicher).</summary>
-public sealed class TeacherSession(EnvelopeCodec codec)
+public enum DraftState { None, Pending, Saved, Failed }
+
+/// <summary>
+/// Geöffneter Arbeitsauftrag einer Lehrkraft.
+/// Änderungen werden nach kurzer Pause als verschlüsselter Entwurf im Gerätespeicher abgelegt
+/// (gleiches Kennwort wie der Auftrag), damit nach einem Neuladen der Seite nichts verloren geht.
+/// </summary>
+public sealed class TeacherSession(EnvelopeCodec codec, IJSRuntime js)
 {
+    private static readonly TimeSpan AutosaveDelay = TimeSpan.FromSeconds(1.5);
+
     private string? _password;
+    private CancellationTokenSource? _pending;
 
     public AssignmentFile? Assignment { get; private set; }
+    public GradingContext? Grading { get; private set; }
     public bool IsOpen => Assignment is not null;
+    public DraftState Draft { get; private set; }
+    public DateTimeOffset? DraftSavedUtc { get; private set; }
+    /// <summary>Zeitpunkt des wiederhergestellten Entwurfs, falls beim Öffnen einer gefunden wurde.</summary>
+    public DateTimeOffset? RestoredFromUtc { get; private set; }
+    public DateTimeOffset? LastResponseUtc { get; private set; }
+    /// <summary>Änderungen seit der letzten Rückgabe.</summary>
+    public bool ChangedSinceResponse { get; private set; }
+
     public event Action? Changed;
+
+    private sealed class LocalDraft
+    {
+        public DateTimeOffset SavedUtc { get; set; }
+        public AssignmentFile Assignment { get; set; } = new();
+    }
 
     public async Task OpenAsync(byte[] bytes, string password)
     {
         var assignment = await codec.OpenAsync<AssignmentFile>(bytes, EnvelopeKind.Assignment, password);
         if (assignment.FormatVersion != AssignmentFile.CurrentFormatVersion || assignment.AssignmentId == Guid.Empty)
             throw new ExchangeSecurityException("Der Arbeitsauftrag hat eine nicht unterstützte Version.");
+
+        RestoredFromUtc = null;
+        var stored = await js.InvokeAsync<string?>("zeugnis.draft.get", assignment.AssignmentId.ToString("N"));
+        if (stored is not null)
+        {
+            try
+            {
+                var draft = await codec.OpenAsync<LocalDraft>(Convert.FromBase64String(stored), EnvelopeKind.Assignment, password);
+                if (draft.Assignment.AssignmentId == assignment.AssignmentId)
+                {
+                    assignment.Reports = draft.Assignment.Reports;
+                    RestoredFromUtc = draft.SavedUtc;
+                }
+            }
+            catch (Exception ex) when (ex is ExchangeSecurityException or FormatException) { /* unlesbarer Entwurf wird ignoriert */ }
+        }
+
         Assignment = assignment;
+        Grading = GradingContext.ForAssignment(assignment);
         _password = password;
+        Draft = RestoredFromUtc is null ? DraftState.None : DraftState.Saved;
+        DraftSavedUtc = RestoredFromUtc;
+        LastResponseUtc = null;
+        ChangedSinceResponse = RestoredFromUtc is not null;
+        Changed?.Invoke();
+    }
+
+    /// <summary>Nach jeder Eingabe aufrufen: plant das Speichern des Entwurfs.</summary>
+    public void MarkChanged()
+    {
+        ChangedSinceResponse = true;
+        Draft = DraftState.Pending;
+        _pending?.Cancel();
+        var cts = _pending = new CancellationTokenSource();
+        _ = SaveDraftLaterAsync(cts.Token);
+        Changed?.Invoke();
+    }
+
+    private async Task SaveDraftLaterAsync(CancellationToken token)
+    {
+        try { await Task.Delay(AutosaveDelay, token); }
+        catch (TaskCanceledException) { return; }
+        await SaveDraftAsync();
+    }
+
+    public async Task SaveDraftAsync()
+    {
+        if (Assignment is null || _password is null) return;
+        try
+        {
+            var now = DateTimeOffset.UtcNow;
+            var bytes = await codec.SealAsync(new LocalDraft { SavedUtc = now, Assignment = Assignment }, EnvelopeKind.Assignment, _password);
+            var ok = await js.InvokeAsync<bool>("zeugnis.draft.set", Assignment.AssignmentId.ToString("N"), Convert.ToBase64String(bytes));
+            Draft = ok ? DraftState.Saved : DraftState.Failed;
+            if (ok) DraftSavedUtc = now;
+        }
+        catch (Exception) { Draft = DraftState.Failed; }
+        Changed?.Invoke();
+    }
+
+    public async Task DiscardDraftAsync()
+    {
+        if (Assignment is null) return;
+        _pending?.Cancel();
+        await js.InvokeVoidAsync("zeugnis.draft.remove", Assignment.AssignmentId.ToString("N"));
+        Draft = DraftState.None;
+        DraftSavedUtc = null;
         Changed?.Invoke();
     }
 
     public async Task<(byte[] Bytes, string FileName)> CreateResponseAsync()
     {
         if (Assignment is null || _password is null) throw new InvalidOperationException("Kein Arbeitsauftrag geöffnet.");
-        var response = ResponseBuilder.Create(Assignment, DateTimeOffset.UtcNow);
+        var now = DateTimeOffset.UtcNow;
+        var response = ResponseBuilder.Create(Assignment, now);
         var bytes = await codec.SealAsync(response, EnvelopeKind.Response, _password);
         var name = $"Rueckgabe_{FileService.SafeFileName(Assignment.ClassName)}_{FileService.SafeFileName(Assignment.Label)}_{DateTime.Now:yyyyMMdd-HHmm}{EnvelopeCodec.Extension(EnvelopeKind.Response)}";
+        LastResponseUtc = now;
+        ChangedSinceResponse = false;
+        Changed?.Invoke();
         return (bytes, name);
     }
 
-    public void Close()
+    /// <summary>Schließt den Auftrag; ein ausstehender Entwurf wird vorher noch gespeichert.</summary>
+    public async Task CloseAsync()
     {
+        if (Draft == DraftState.Pending)
+        {
+            _pending?.Cancel();
+            await SaveDraftAsync();
+        }
         Assignment = null;
+        Grading = null;
         _password = null;
+        Draft = DraftState.None;
+        RestoredFromUtc = null;
         Changed?.Invoke();
     }
 }

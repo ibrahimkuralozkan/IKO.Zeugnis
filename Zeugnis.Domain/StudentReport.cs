@@ -20,7 +20,7 @@ public sealed class StudentReport
     {
         if (!FieldKey.TryParse(key, out _)) throw new ArgumentException($"Ungültiger Feldschlüssel: '{key}'.", nameof(key));
         Fields.TryGetValue(key, out var current);
-        if (current is not null && current.Value == value) return false;
+        if ((current?.Value ?? "") == value) return false; // fehlender Wert gilt als leer
         Fields[key] = new FieldValue(value, (current?.Revision ?? 0) + 1, changedBy, now);
         return true;
     }
