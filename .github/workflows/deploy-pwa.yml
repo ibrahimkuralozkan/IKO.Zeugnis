@@ -46,13 +46,14 @@ jobs:
           fi
 
       - uses: actions/upload-pages-artifact@v4
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && vars.PAGES_ENABLED == 'true'
         with:
           path: publish/wwwroot
           include-hidden-files: true
 
   deploy:
-    if: github.ref == 'refs/heads/main'
+    # Veröffentlichung nur, wenn Pages eingerichtet ist (Repository-Variable PAGES_ENABLED=true).
+    if: github.ref == 'refs/heads/main' && vars.PAGES_ENABLED == 'true'
     needs: build
     runs-on: ubuntu-latest
     environment:

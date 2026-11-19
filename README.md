@@ -59,3 +59,10 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 - Gerçek öğrenci verileri, parolalar ve `.zschule`/`.zauftrag`/`.zantwort` dosyaları asla Git'e eklenmez (`.gitignore` bunları dışlar).
 - Her işlevsel değişiklikte `Directory.Build.props` içindeki sürüm artırılır.
 - Uyarılar hata sayılır (`TreatWarningsAsErrors`).
+
+## Yayın (GitHub Pages)
+
+Repo private olduğu için Pages yalnızca ücretli GitHub planında (Pro/Team) çalışır. O zamana kadar iş akışı yalnızca testleri ve yayın derlemesini çalıştırır. Yayını açmak için:
+
+1. Repo → Settings → Pages → Source: **GitHub Actions**
+2. Repo → Settings → Secrets and variables → Actions → Variables: `PAGES_ENABLED` = `true`
