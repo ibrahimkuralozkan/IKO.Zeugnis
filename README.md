@@ -1,6 +1,6 @@
 # IKO.Zeugnis
 
-Öğretmenlerin iPad, Windows veya Mac üzerinde karne doldurduğu; yöneticinin (Verwaltung) dosyaları dağıttığı ve dönüşleri birleştirdiği platform bağımsız uygulama. Önceki projelere bağlı olmadan sıfırdan yazıldı.
+Öğretmenlerin iPad, Windows veya Mac üzerinde karne doldurduğu; yöneticinin (Verwaltung) dosyaları dağıttığı ve dönüşleri birleştirdiği platform bağımsız uygulama. Tamamen yeni bir uygulamadır; önceki projelerden kod veya veri almaz.
 
 ## İlke
 
@@ -48,7 +48,7 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 ## Sürüm planı
 
 - [x] **0.1:** İskelet, alan modeli, şifreleme, birleştirme motoru, iki rollü PWA kabuğu
-- [ ] **0.2:** Eski `IKO.ZeugnisManager.Web` AppData'sının (öğrenciler, kataloglar, öğretmenler, Word şablonları) `.zschule` içine aktarılması
+- [ ] **0.2:** Verwaltung içinde temel veriler: okul bilgileri, sınıflar, öğretmenler, öğrenciler (elle ve CSV/Excel ile), katalog düzenleyici, Word şablonu yükleme
 - [ ] **0.3:** Öğretmen değerlendirme ekranı (iPad öncelikli), dönüş oluşturma
 - [ ] **0.4:** Verwaltung'da görev dağıtımı, dönüş önizleme ve çakışma ekranı
 - [ ] **0.5:** Word karne çıktısı (`Zeugnis.Export`, OpenXml, tarayıcıda)
