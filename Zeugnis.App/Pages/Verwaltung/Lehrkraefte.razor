@@ -1,0 +1,124 @@
+@page "/verwaltung/lehrkraefte"
+@inherits AdminPageBase
+
+<PageTitle>Lehrkräfte – Verwaltung</PageTitle>
+
+<AdminFrame Error="@Error" Success="@Success">
+    @if (File is { } f)
+    {
+        <form class="card form" @onsubmit="Add" @onsubmit:preventDefault>
+            <h2>Lehrkraft hinzufügen</h2>
+            <div class="row">
+                <label class="field grow"><span>Name, wie im Zeugnis (z. B. „Frau Müller“)</span><input @bind="_newName" /></label>
+                <label class="field"><span>Geschlecht</span><GenderSelect @bind-Value="_newGender" /></label>
+                <button class="btn primary align-end" type="submit">Hinzufügen</button>
+            </div>
+        </form>
+
+        <div class="card">
+            <h2>Lehrkräfte (@f.Teachers.Count)</h2>
+            @if (f.Teachers.Count == 0)
+            {
+                <p class="muted">Noch keine Lehrkräfte.</p>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table class="list">
+                        <thead><tr><th>Name</th><th>Geschlecht</th><th>Klassenlehrkraft</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var t in f.Teachers.OrderBy(t => t.DisplayName))
+                            {
+                                if (_editId == t.Id)
+                                {
+                                    <tr class="editing">
+                                        <td><input @bind="_editName" aria-label="Name" /></td>
+                                        <td><GenderSelect @bind-Value="_editGender" /></td>
+                                        <td>@ClassesOf(f, t.Id)</td>
+                                        <td class="row-actions">
+                                            <button class="btn primary" @onclick="SaveEdit">Übernehmen</button>
+                                            <button class="btn" @onclick="() => _editId = null">Abbrechen</button>
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td>@t.DisplayName</td>
+                                        <td>@Labels.Of(t.Gender)</td>
+                                        <td>@ClassesOf(f, t.Id)</td>
+                                        <td class="row-actions">
+                                            @if (_deleteId == t.Id)
+                                            {
+                                                <button class="btn danger" @onclick="() => Remove(t.Id)">Wirklich entfernen</button>
+                                                <button class="btn" @onclick="() => _deleteId = null">Abbrechen</button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn" @onclick="() => StartEdit(t)">Bearbeiten</button>
+                                                <button class="btn" @onclick="() => AskRemove(t.Id)">Entfernen</button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+</AdminFrame>
+
+@code {
+    private string _newName = "";
+    private Gender _newGender;
+    private Guid? _editId;
+    private string _editName = "";
+    private Gender _editGender;
+    private Guid? _deleteId;
+
+    private static string ClassesOf(SchoolFile f, Guid id)
+    {
+        var names = string.Join(", ", f.Classes.Where(c => c.ClassTeacherId == id).Select(c => c.Name));
+        return names.Length > 0 ? names : "–";
+    }
+
+    private void Add()
+    {
+        var name = _newName.Trim();
+        if (Change(f => MasterData.AddTeacher(f, _newName, _newGender, DateTimeOffset.UtcNow), $"„{name}“ hinzugefügt."))
+        {
+            _newName = "";
+            _newGender = Gender.Unknown;
+        }
+    }
+
+    private void StartEdit(Teacher t)
+    {
+        ClearMessages();
+        _deleteId = null;
+        _editId = t.Id;
+        _editName = t.DisplayName;
+        _editGender = t.Gender;
+    }
+
+    private void SaveEdit()
+    {
+        if (_editId is { } id && Change(f => MasterData.UpdateTeacher(f, id, _editName, _editGender, DateTimeOffset.UtcNow)))
+            _editId = null;
+    }
+
+    private void AskRemove(Guid id)
+    {
+        ClearMessages();
+        _editId = null;
+        _deleteId = id;
+    }
+
+    private void Remove(Guid id)
+    {
+        Change(f => MasterData.RemoveTeacher(f, id, DateTimeOffset.UtcNow), "Lehrkraft entfernt.");
+        _deleteId = null;
+    }
+}

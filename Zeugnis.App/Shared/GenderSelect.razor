@@ -1,0 +1,12 @@
+<select value="@Value" @onchange="OnChange" aria-label="Geschlecht">
+    @foreach (var g in Labels.Genders)
+    {
+        <option value="@g">@Labels.Of(g)</option>
+    }
+</select>
+
+@code {
+    [Parameter] public Gender Value { get; set; }
+    [Parameter] public EventCallback<Gender> ValueChanged { get; set; }
+    private Task OnChange(ChangeEventArgs e) => ValueChanged.InvokeAsync(Enum.Parse<Gender>(e.Value?.ToString() ?? nameof(Gender.Unknown)));
+}

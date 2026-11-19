@@ -138,3 +138,50 @@ details.card summary { cursor: pointer; font-weight: 600; }
 }
 .loading-progress-text { position: absolute; text-align: center; font-weight: bold; inset: calc(20vh + 3.25rem) 0 auto .2rem; }
 .loading-progress-text:after { content: var(--blazor-load-percentage-text, "Lädt"); }
+
+/* ---------- Verwaltung (v0.2) ---------- */
+.admin-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+.admin-head h1 { margin-bottom: .2rem; }
+
+.tabs {
+    display: flex; gap: .25rem; margin: 0 0 1rem; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    border-bottom: 1px solid var(--border);
+}
+.tab {
+    padding: .7rem 1rem; color: var(--muted); text-decoration: none; font-weight: 600; white-space: nowrap;
+    border-bottom: 3px solid transparent; margin-bottom: -1px;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+.toolbar { display: flex; gap: .75rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1rem; }
+.field.compact { flex: 0 0 auto; min-width: 10rem; }
+.field.grow { flex: 2 1 14rem; }
+.align-end { align-self: flex-end; }
+.narrow { max-width: 640px; }
+.check { display: flex; gap: .6rem; align-items: flex-start; font-size: .95rem; }
+.check input { width: 1.3rem; height: 1.3rem; min-height: 0; margin-top: .15rem; flex: none; }
+
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-wrap.scroll { max-height: 50vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
+table.list { width: 100%; border-collapse: collapse; font-size: .95rem; }
+table.list th { text-align: left; color: var(--muted); font-weight: 600; font-size: .85rem; padding: .5rem .6rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); }
+table.list td { padding: .5rem .6rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+table.list tr:last-child td { border-bottom: none; }
+table.list tr.editing td { background: var(--info-bg); }
+table.list td input, table.list td select { min-height: 40px; padding: .4rem .6rem; }
+.row-actions { text-align: right; white-space: nowrap; }
+.row-actions .btn { min-height: 40px; padding: .35rem .8rem; margin-left: .3rem; }
+tr.row-ok td:nth-child(2) { color: var(--ok-fg); font-weight: 600; }
+tr.row-muted td { color: var(--muted); }
+tr.row-err td { background: var(--err-bg); color: var(--err-fg); }
+
+.badge { display: inline-block; padding: .15rem .6rem; border-radius: 999px; font-size: .82rem; font-weight: 600; background: var(--border); color: var(--text); margin-right: .3rem; }
+.badge.ok { background: var(--ok-bg); color: var(--ok-fg); }
+.badge.warn { background: var(--warn-bg); color: var(--warn-fg); }
+.badge.err { background: var(--err-bg); color: var(--err-fg); }
+
+@media (max-width: 640px) {
+    .row-actions { white-space: normal; }
+    .row-actions .btn { margin: .2rem 0 .2rem .3rem; }
+}

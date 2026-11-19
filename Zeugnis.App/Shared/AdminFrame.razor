@@ -1,0 +1,118 @@
+@* Rahmen für Verwaltungsseiten: Kopf mit Speichern, Reiter, Meldungen. *@
+@implements IDisposable
+@inject SchoolSession Session
+@inject FileService Files
+@inject NavigationManager Nav
+
+@if (Session.File is not { } f)
+{
+    <div class="card">
+        <h2>Keine Schuldatei geöffnet</h2>
+        <p class="muted">Bitte zuerst eine Schuldatei öffnen oder neu erstellen.</p>
+        <a class="btn primary" href="verwaltung">Zur Verwaltung</a>
+    </div>
+}
+else
+{
+    <div class="admin-head">
+        <div>
+            <h1>@f.School.Name</h1>
+            <p class="muted">
+                @f.Term · @(f.Revision == 0 ? "noch nie gespeichert" : $"Revision {f.Revision}")
+                @if (Session.IsDirty)
+                {
+                    <span class="badge warn">ungespeichert</span>
+                }
+            </p>
+        </div>
+        <div class="actions">
+            <button class="btn primary" @onclick="SaveAsync" disabled="@_saving">Speichern (neue Revision)</button>
+            <button class="btn" @onclick="Close">Schließen</button>
+        </div>
+    </div>
+
+    <nav class="tabs" aria-label="Verwaltung">
+        @foreach (var (href, label) in Tabs)
+        {
+            <NavLink class="tab" href="@href" Match="NavLinkMatch.All">@label</NavLink>
+        }
+    </nav>
+
+    @if (_saved is not null)
+    {
+        <p class="alert success">Gespeichert als <strong>@_saved</strong>. Diese Datei in LOGINEO ablegen und die ältere Revision dort löschen.</p>
+    }
+    @if (_confirmClose)
+    {
+        <div class="alert warn">
+            Es gibt ungespeicherte Änderungen. Beim Schließen gehen sie verloren.
+            <div>
+                <button class="btn danger" @onclick="ForceClose">Ohne Speichern schließen</button>
+                <button class="btn" @onclick="() => _confirmClose = false">Abbrechen</button>
+            </div>
+        </div>
+    }
+    @if (Error is not null)
+    {
+        <p class="alert error" role="alert">@Error</p>
+    }
+    @if (Success is not null)
+    {
+        <p class="alert success" role="status">@Success</p>
+    }
+
+    @ChildContent
+}
+
+@code {
+    private static readonly (string, string)[] Tabs =
+    [
+        ("verwaltung", "Übersicht"),
+        ("verwaltung/schule", "Schule"),
+        ("verwaltung/lehrkraefte", "Lehrkräfte"),
+        ("verwaltung/klassen", "Klassen"),
+        ("verwaltung/schueler", "Schüler"),
+    ];
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public string? Success { get; set; }
+
+    private bool _saving;
+    private bool _confirmClose;
+    private string? _saved;
+
+    protected override void OnInitialized() => Session.Changed += Refresh;
+    public void Dispose() => Session.Changed -= Refresh;
+    private void Refresh()
+    {
+        if (Session.IsDirty) _saved = null;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            var (bytes, name) = await Session.SaveAsync();
+            await Files.DownloadAsync(bytes, name);
+            _saved = name;
+        }
+        finally { _saving = false; }
+    }
+
+    private void Close()
+    {
+        if (Session.IsDirty) { _confirmClose = true; return; }
+        ForceClose();
+    }
+
+    private void ForceClose()
+    {
+        _confirmClose = false;
+        _saved = null;
+        Session.Close();
+        Nav.NavigateTo("verwaltung");
+    }
+}

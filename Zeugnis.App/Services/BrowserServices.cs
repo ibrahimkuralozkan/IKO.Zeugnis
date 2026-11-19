@@ -51,6 +51,18 @@ public sealed class FileService(IJSRuntime js)
     public ValueTask DownloadAsync(byte[] bytes, string fileName, string mime = "application/octet-stream") =>
         js.InvokeVoidAsync("zeugnis.download", bytes, fileName, mime);
 
+    /// <summary>
+    /// Textdatei lesen: zuerst UTF-8; enthält sie ungültige Bytes (typisch für Excel-„CSV (Trennzeichen-getrennt)“),
+    /// dann Windows-1252/Latin-1, damit Umlaute erhalten bleiben.
+    /// </summary>
+    public static string DecodeText(byte[] bytes)
+    {
+        try { return new System.Text.UTF8Encoding(false, throwOnInvalidBytes: true).GetString(bytes); }
+        catch (System.Text.DecoderFallbackException) { return System.Text.Encoding.Latin1.GetString(bytes); }
+    }
+
+    public ValueTask SetUnloadGuardAsync(bool active) => js.InvokeVoidAsync("zeugnis.setUnloadGuard", active);
+
     public static string SafeFileName(string value) =>
         string.Concat(value.Select(c => Path.GetInvalidFileNameChars().Contains(c) || char.IsWhiteSpace(c) || c == '/' ? '_' : c));
 }

@@ -1,0 +1,331 @@
+@page "/verwaltung/schueler"
+@inherits AdminPageBase
+@inject FileService Files
+
+<PageTitle>Schüler – Verwaltung</PageTitle>
+
+<AdminFrame Error="@Error" Success="@Success">
+    @if (File is { } f)
+    {
+        @if (f.Classes.Count == 0)
+        {
+            <div class="card">
+                <p class="muted">Bitte zuerst <a href="verwaltung/klassen">Klassen anlegen</a> oder eine Schülerliste importieren und fehlende Klassen dabei anlegen lassen.</p>
+            </div>
+        }
+
+        <div class="toolbar">
+            @if (f.Classes.Count > 0)
+            {
+                <label class="field compact">
+                    <span>Klasse</span>
+                    @* „selected“ je Option statt value am select: bleibt korrekt, wenn sich die Optionsliste ändert. *@
+                    <select @onchange="e => SelectClass(e.Value?.ToString())">
+                        @foreach (var c in f.Classes)
+                        {
+                            <option value="@c.Name" selected="@(c.Name == SelectedClass)">@c.Name (@f.Students.Count(s => s.ClassName == c.Name))</option>
+                        }
+                    </select>
+                </label>
+                <button class="btn primary" @onclick="StartAdd">+ Schüler</button>
+            }
+            <button class="btn" @onclick="ToggleImport">@(_importOpen ? "Import schließen" : "Liste importieren (CSV)")</button>
+        </div>
+
+        @if (_importOpen)
+        {
+            <div class="card form">
+                <h2>Schülerliste importieren</h2>
+                <p class="muted">
+                    CSV-Datei mit Überschriften in der ersten Zeile. Pflicht: <strong>Vorname, Nachname, Klasse</strong>.
+                    Optional: Geburtsdatum, Geschlecht (w/m/d), Bildungsgang (Regel/SE/Förder).
+                    Aus Excel: „Speichern unter → CSV UTF-8“.
+                </p>
+                <label class="check">
+                    <input type="checkbox" @bind="_createClasses" @bind:after="Reparse" />
+                    <span>Fehlende Klassen automatisch anlegen (Jahrgang aus der Bezeichnung, z. B. „2b“ → 2)</span>
+                </label>
+                <InputFile OnChange="OnCsvChosen" accept=".csv,.txt,text/csv" />
+
+                @if (_import is { } p)
+                {
+                    @if (p.FatalError is not null)
+                    {
+                        <p class="alert error">@p.FatalError</p>
+                    }
+                    else
+                    {
+                        @foreach (var note in p.Notes)
+                        {
+                            <p class="alert info">@note</p>
+                        }
+                        @if (p.MissingClasses.Count > 0)
+                        {
+                            <p class="alert info">Neue Klassen: @string.Join(", ", p.MissingClasses)</p>
+                        }
+                        <p>
+                            <span class="badge ok">@p.NewRows.Count() neu</span>
+                            <span class="badge">@p.Rows.Count(r => r.Status == ImportRowStatus.Duplicate) bereits vorhanden</span>
+                            <span class="badge err">@p.Rows.Count(r => r.Status == ImportRowStatus.Error) fehlerhaft</span>
+                        </p>
+                        <div class="table-wrap scroll">
+                            <table class="list">
+                                <thead><tr><th>Zeile</th><th>Status</th><th>Name</th><th>Klasse</th><th>Geboren</th><th>Hinweis</th></tr></thead>
+                                <tbody>
+                                    @foreach (var r in p.Rows)
+                                    {
+                                        <tr class="@RowClass(r.Status)">
+                                            <td>@r.Line</td>
+                                            <td>@StatusText(r.Status)</td>
+                                            <td>@r.Student?.LastName, @r.Student?.FirstName</td>
+                                            <td>@r.Student?.ClassName</td>
+                                            <td>@Labels.Date(r.Student?.DateOfBirth)</td>
+                                            <td>@r.Message</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="actions">
+                            <button class="btn primary" @onclick="ApplyImport" disabled="@(!p.NewRows.Any())">@p.NewRows.Count() Schüler übernehmen</button>
+                        </div>
+                    }
+                }
+            </div>
+        }
+
+        @if (_form is not null)
+        {
+            <form class="card form" @onsubmit="SaveForm" @onsubmit:preventDefault>
+                <h2>@(_editId is null ? "Schüler hinzufügen" : "Schüler bearbeiten")</h2>
+                <div class="row">
+                    <label class="field"><span>Vorname</span><input @bind="_form.FirstName" /></label>
+                    <label class="field"><span>Nachname</span><input @bind="_form.LastName" /></label>
+                </div>
+                <div class="row">
+                    <label class="field"><span>Geburtsdatum</span><input type="date" @bind="_form.DateOfBirth" /></label>
+                    <label class="field"><span>Geschlecht</span><GenderSelect @bind-Value="_form.Gender" /></label>
+                </div>
+                <div class="row">
+                    <label class="field">
+                        <span>Klasse</span>
+                        <select @onchange="e => _form.ClassName = e.Value?.ToString() ?? string.Empty">
+                            @foreach (var c in f.Classes)
+                            {
+                                <option value="@c.Name" selected="@(c.Name == _form.ClassName)">@c.Name</option>
+                            }
+                        </select>
+                    </label>
+                    <label class="field">
+                        <span>Bildungsgang</span>
+                        <select @bind="_form.Track">
+                            @foreach (var t in Labels.Tracks)
+                            {
+                                <option value="@t">@Labels.Of(t)</option>
+                            }
+                        </select>
+                    </label>
+                </div>
+                <div class="actions">
+                    <button class="btn primary" type="submit">@(_editId is null ? "Hinzufügen" : "Übernehmen")</button>
+                    @if (_editId is null)
+                    {
+                        <button class="btn" type="button" @onclick="SaveAndNext">Hinzufügen und weiter</button>
+                    }
+                    <button class="btn" type="button" @onclick="CloseForm">Abbrechen</button>
+                </div>
+            </form>
+        }
+
+        @if (SelectedClass is { } cls)
+        {
+            var students = f.Students.Where(s => s.ClassName == cls).OrderBy(s => s.LastName).ThenBy(s => s.FirstName).ToList();
+            <div class="card">
+                <h2>Klasse @cls (@students.Count)</h2>
+                @if (students.Count == 0)
+                {
+                    <p class="muted">Keine Schüler in dieser Klasse.</p>
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table class="list">
+                            <thead><tr><th>Name</th><th>Geboren</th><th>Geschlecht</th><th>Bildungsgang</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var s in students)
+                                {
+                                    <tr>
+                                        <td>@s.DisplayName</td>
+                                        <td>@Labels.Date(s.DateOfBirth)</td>
+                                        <td>@Labels.Of(s.Gender)</td>
+                                        <td>@Labels.Of(s.Track)</td>
+                                        <td class="row-actions">
+                                            @if (_deleteId == s.Id)
+                                            {
+                                                <button class="btn danger" @onclick="() => Remove(s.Id)">
+                                                    @(MasterData.HasReportData(f, s.Id) ? "Mit Zeugniswerten entfernen" : "Wirklich entfernen")
+                                                </button>
+                                                <button class="btn" @onclick="() => _deleteId = null">Abbrechen</button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn" @onclick="() => StartEdit(s)">Bearbeiten</button>
+                                                <button class="btn" @onclick="() => AskRemove(s.Id)">Entfernen</button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        }
+    }
+</AdminFrame>
+
+@code {
+    [SupplyParameterFromQuery(Name = "klasse")] public string? KlasseQuery { get; set; }
+
+    private string? _selected;
+    private Student? _form;
+    private Guid? _editId;
+    private Guid? _deleteId;
+
+    private bool _importOpen;
+    private bool _createClasses;
+    private string? _csvText;
+    private ImportPreview? _import;
+
+    private string? SelectedClass
+    {
+        get
+        {
+            var classes = File?.Classes;
+            if (classes is null || classes.Count == 0) return null;
+            if (_selected is not null && classes.Any(c => c.Name == _selected)) return _selected;
+            if (KlasseQuery is not null && classes.Any(c => c.Name == KlasseQuery)) return _selected = KlasseQuery;
+            return _selected = classes[0].Name;
+        }
+    }
+
+    private void SelectClass(string? name)
+    {
+        _selected = name;
+        _deleteId = null;
+    }
+
+    // ---------- Einzelerfassung ----------
+
+    private void StartAdd()
+    {
+        ClearMessages();
+        _editId = null;
+        _deleteId = null;
+        _form = new Student { ClassName = SelectedClass ?? "" };
+    }
+
+    private void StartEdit(Student s)
+    {
+        ClearMessages();
+        _deleteId = null;
+        _editId = s.Id;
+        _form = new Student
+        {
+            FirstName = s.FirstName, LastName = s.LastName, DateOfBirth = s.DateOfBirth,
+            Gender = s.Gender, Track = s.Track, ClassName = s.ClassName,
+        };
+    }
+
+    private void CloseForm()
+    {
+        _form = null;
+        _editId = null;
+    }
+
+    private void SaveForm() => Save(keepOpen: false);
+    private void SaveAndNext() => Save(keepOpen: true);
+
+    private void Save(bool keepOpen)
+    {
+        if (_form is null) return;
+        var input = _form;
+        var name = $"{input.LastName.Trim()}, {input.FirstName.Trim()}";
+        bool ok = _editId is { } id
+            ? Change(f => MasterData.UpdateStudent(f, id, input, DateTimeOffset.UtcNow), $"{name} geändert.")
+            : Change(f => MasterData.AddStudent(f, input, DateTimeOffset.UtcNow), $"{name} hinzugefügt.");
+        if (!ok) return;
+        _selected = input.ClassName;
+        if (keepOpen) _form = new Student { ClassName = input.ClassName, Track = StudentTrack.Regular };
+        else CloseForm();
+    }
+
+    private void AskRemove(Guid id)
+    {
+        ClearMessages();
+        CloseForm();
+        _deleteId = id;
+    }
+
+    private void Remove(Guid id)
+    {
+        Change(f => MasterData.RemoveStudent(f, id, DateTimeOffset.UtcNow), "Schüler entfernt.");
+        _deleteId = null;
+    }
+
+    // ---------- Import ----------
+
+    private void ToggleImport()
+    {
+        ClearMessages();
+        _importOpen = !_importOpen;
+        _import = null;
+        _csvText = null;
+    }
+
+    private async Task OnCsvChosen(InputFileChangeEventArgs e)
+    {
+        ClearMessages();
+        try
+        {
+            var bytes = await Files.ReadAsync(e.File);
+            _csvText = FileService.DecodeText(bytes);
+            Reparse();
+        }
+        catch (ExchangeSecurityException ex) { Error = ex.Message; }
+    }
+
+    private void Reparse()
+    {
+        if (_csvText is not null && File is not null)
+            _import = StudentCsvImport.Parse(_csvText, File, _createClasses);
+    }
+
+    private void ApplyImport()
+    {
+        if (_import is not { } p) return;
+        var count = p.NewRows.Count();
+        var firstClass = p.NewRows.FirstOrDefault()?.Student?.ClassName;
+        if (Change(f => StudentCsvImport.Apply(f, p, DateTimeOffset.UtcNow), $"{count} Schüler importiert."))
+        {
+            _importOpen = false;
+            _import = null;
+            _csvText = null;
+            _selected = firstClass;
+        }
+    }
+
+    private static string StatusText(ImportRowStatus s) => s switch
+    {
+        ImportRowStatus.New => "neu",
+        ImportRowStatus.Duplicate => "vorhanden",
+        _ => "Fehler",
+    };
+
+    private static string RowClass(ImportRowStatus s) => s switch
+    {
+        ImportRowStatus.New => "row-ok",
+        ImportRowStatus.Duplicate => "row-muted",
+        _ => "row-err",
+    };
+}

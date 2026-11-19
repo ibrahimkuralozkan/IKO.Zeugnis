@@ -1,0 +1,15 @@
+<select @onchange="OnChange" aria-label="Klassenlehrkraft">
+    <option value="" selected="@(Value is null)">– keine –</option>
+    @foreach (var t in Teachers.OrderBy(t => t.DisplayName))
+    {
+        <option value="@t.Id" selected="@(t.Id == Value)">@t.DisplayName</option>
+    }
+</select>
+
+@code {
+    [Parameter, EditorRequired] public IEnumerable<Teacher> Teachers { get; set; } = [];
+    [Parameter] public Guid? Value { get; set; }
+    [Parameter] public EventCallback<Guid?> ValueChanged { get; set; }
+    private Task OnChange(ChangeEventArgs e) =>
+        ValueChanged.InvokeAsync(Guid.TryParse(e.Value?.ToString(), out var id) ? id : null);
+}

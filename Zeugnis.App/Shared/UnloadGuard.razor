@@ -1,0 +1,18 @@
+@* Hält die Browser-Warnung „Seite verlassen?“ synchron mit ungespeicherten Änderungen. *@
+@implements IDisposable
+@inject SchoolSession Session
+@inject FileService Files
+
+@code {
+    private bool _active;
+
+    protected override void OnInitialized() => Session.Changed += Sync;
+    public void Dispose() => Session.Changed -= Sync;
+
+    private void Sync() => InvokeAsync(async () =>
+    {
+        if (_active == Session.IsDirty) return;
+        _active = Session.IsDirty;
+        await Files.SetUnloadGuardAsync(_active);
+    });
+}

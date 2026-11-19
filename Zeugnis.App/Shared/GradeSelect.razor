@@ -1,0 +1,12 @@
+<select value="@Value" @onchange="OnChange" aria-label="Jahrgang">
+    @for (var g = 1; g <= 4; g++)
+    {
+        <option value="@g">@g</option>
+    }
+</select>
+
+@code {
+    [Parameter] public int Value { get; set; }
+    [Parameter] public EventCallback<int> ValueChanged { get; set; }
+    private Task OnChange(ChangeEventArgs e) => ValueChanged.InvokeAsync(int.TryParse(e.Value?.ToString(), out var g) ? g : 1);
+}

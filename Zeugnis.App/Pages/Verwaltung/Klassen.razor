@@ -1,0 +1,130 @@
+@page "/verwaltung/klassen"
+@inherits AdminPageBase
+
+<PageTitle>Klassen – Verwaltung</PageTitle>
+
+<AdminFrame Error="@Error" Success="@Success">
+    @if (File is { } f)
+    {
+        <form class="card form" @onsubmit="Add" @onsubmit:preventDefault>
+            <h2>Klasse hinzufügen</h2>
+            <div class="row">
+                <label class="field"><span>Bezeichnung</span><input @bind="_newName" placeholder="3a" /></label>
+                <label class="field"><span>Jahrgang</span><GradeSelect @bind-Value="_newGrade" /></label>
+                <label class="field grow"><span>Klassenlehrkraft</span><TeacherSelect Teachers="f.Teachers" @bind-Value="_newTeacher" /></label>
+                <button class="btn primary align-end" type="submit">Hinzufügen</button>
+            </div>
+        </form>
+
+        <div class="card">
+            <h2>Klassen (@f.Classes.Count)</h2>
+            @if (f.Classes.Count == 0)
+            {
+                <p class="muted">Noch keine Klassen.</p>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table class="list">
+                        <thead><tr><th>Klasse</th><th>Jahrgang</th><th>Klassenlehrkraft</th><th>Schüler</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var c in f.Classes.ToList())
+                            {
+                                var count = f.Students.Count(s => s.ClassName == c.Name);
+                                if (_editName == c.Name)
+                                {
+                                    <tr class="editing">
+                                        <td><input @bind="_editNewName" aria-label="Bezeichnung" /></td>
+                                        <td><GradeSelect @bind-Value="_editGrade" /></td>
+                                        <td><TeacherSelect Teachers="f.Teachers" @bind-Value="_editTeacher" /></td>
+                                        <td>@count</td>
+                                        <td class="row-actions">
+                                            <button class="btn primary" @onclick="SaveEdit">Übernehmen</button>
+                                            <button class="btn" @onclick="() => _editName = null">Abbrechen</button>
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td><strong>@c.Name</strong></td>
+                                        <td>@c.Grade</td>
+                                        <td>@TeacherName(f, c.ClassTeacherId)</td>
+                                        <td><a href="verwaltung/schueler?klasse=@Uri.EscapeDataString(c.Name)">@count</a></td>
+                                        <td class="row-actions">
+                                            @if (_deleteName == c.Name)
+                                            {
+                                                <button class="btn danger" @onclick="() => Remove(c.Name)">Wirklich entfernen</button>
+                                                <button class="btn" @onclick="() => _deleteName = null">Abbrechen</button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn" @onclick="() => StartEdit(c)">Bearbeiten</button>
+                                                <button class="btn" @onclick="() => AskRemove(c.Name)">Entfernen</button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+</AdminFrame>
+
+@code {
+    private string _newName = "";
+    private int _newGrade = 1;
+    private Guid? _newTeacher;
+
+    private string? _editName;
+    private string _editNewName = "";
+    private int _editGrade;
+    private Guid? _editTeacher;
+    private string? _deleteName;
+
+    private static string TeacherName(SchoolFile f, Guid? id) =>
+        f.Teachers.FirstOrDefault(t => t.Id == id)?.DisplayName ?? "–";
+
+    private void Add()
+    {
+        var name = _newName.Trim();
+        if (Change(f => MasterData.AddClass(f, _newName, _newGrade, _newTeacher, DateTimeOffset.UtcNow), $"Klasse {name} hinzugefügt."))
+        {
+            _newName = "";
+            _newTeacher = null;
+        }
+    }
+
+    private void StartEdit(SchoolClass c)
+    {
+        ClearMessages();
+        _deleteName = null;
+        _editName = c.Name;
+        _editNewName = c.Name;
+        _editGrade = c.Grade;
+        _editTeacher = c.ClassTeacherId;
+    }
+
+    private void SaveEdit()
+    {
+        if (_editName is { } name &&
+            Change(f => MasterData.UpdateClass(f, name, _editNewName, _editGrade, _editTeacher, DateTimeOffset.UtcNow)))
+            _editName = null;
+    }
+
+    private void AskRemove(string name)
+    {
+        ClearMessages();
+        _editName = null;
+        _deleteName = name;
+    }
+
+    private void Remove(string name)
+    {
+        Change(f => MasterData.RemoveClass(f, name, DateTimeOffset.UtcNow), $"Klasse {name} entfernt.");
+        _deleteName = null;
+    }
+}

@@ -42,5 +42,10 @@ window.zeugnis = (() => {
 
   const isSecure = () => !!(window.isSecureContext && crypto && crypto.subtle);
 
-  return { encrypt, decrypt, download, isSecure };
+  // Warnung beim Schließen/Neuladen des Tabs, solange ungespeicherte Änderungen bestehen.
+  let guard = false;
+  window.addEventListener("beforeunload", e => { if (guard) { e.preventDefault(); e.returnValue = ""; } });
+  const setUnloadGuard = active => { guard = !!active; };
+
+  return { encrypt, decrypt, download, isSecure, setUnloadGuard };
 })();

@@ -1,0 +1,48 @@
+@page "/verwaltung/schule"
+@inherits AdminPageBase
+
+<PageTitle>Schule – Verwaltung</PageTitle>
+
+<AdminFrame Error="@Error" Success="@Success">
+    @if (File is { } f)
+    {
+        <form class="card form narrow" @onsubmit="Save" @onsubmit:preventDefault>
+            <h2>Schule</h2>
+            <p class="muted">Diese Angaben erscheinen im Zeugniskopf.</p>
+            <label class="field"><span>Name der Schule</span><input @bind="_info.Name" /></label>
+            <label class="field"><span>Anschrift, Zeile 1</span><input @bind="_info.AddressLine1" placeholder="Straße Nr." /></label>
+            <label class="field"><span>Anschrift, Zeile 2</span><input @bind="_info.AddressLine2" placeholder="PLZ Ort" /></label>
+            <div class="row">
+                <label class="field"><span>Ort (für „Ort, Datum“)</span><input @bind="_info.Town" /></label>
+                <label class="field"><span>Telefon</span><input @bind="_info.Phone" type="tel" /></label>
+            </div>
+            <p class="muted">Schuljahr: <strong>@f.Term</strong>. Für ein neues Halbjahr eine neue Schuldatei erstellen.</p>
+            <div class="actions"><button class="btn primary" type="submit">Übernehmen</button></div>
+        </form>
+    }
+</AdminFrame>
+
+@code {
+    private SchoolInfo _info = new();
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        if (File is { } f)
+            _info = new SchoolInfo
+            {
+                Name = f.School.Name, AddressLine1 = f.School.AddressLine1, AddressLine2 = f.School.AddressLine2,
+                Town = f.School.Town, Phone = f.School.Phone,
+            };
+    }
+
+    private void Save() => Change(f =>
+    {
+        if (string.IsNullOrWhiteSpace(_info.Name)) throw new MasterDataException("Bitte den Namen der Schule angeben.");
+        f.School = new SchoolInfo
+        {
+            Name = _info.Name.Trim(), AddressLine1 = _info.AddressLine1.Trim(), AddressLine2 = _info.AddressLine2.Trim(),
+            Town = _info.Town.Trim(), Phone = _info.Phone.Trim(),
+        };
+    }, "Angaben übernommen. Zum Sichern „Speichern“ wählen.");
+}
