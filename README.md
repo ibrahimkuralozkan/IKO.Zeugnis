@@ -49,10 +49,10 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 
 - [x] **0.1:** İskelet, alan modeli, şifreleme, birleştirme motoru, iki rollü PWA kabuğu
 - [x] **0.2:** Verwaltung içinde temel veriler: okul bilgileri, öğretmenler, sınıflar, öğrenciler (elle ve CSV ile; Excel için „CSV UTF-8“ ya da klasik CSV, Latin-1 umlautlar tanınır), kaydedilmemiş değişiklik uyarısı
-- [ ] **0.2.x:** Katalog düzenleyici (değerlendirme alanları), Word şablonu yükleme
+- [x] **0.2.1:** Katalog düzenleyici: her sınıf düzeyi ve eğitim yolu için bir katalog; bölümler (işaretleme, not, serbest metin, seçim), kriterler, değerlendirme ölçeği, kopyalama, `.zkatalog` dışa/içe aktarma. Anahtarlar sabit kalır; silinen kimlikler yeniden kullanılmaz
 - [ ] **0.3:** Öğretmen değerlendirme ekranı (iPad öncelikli), dönüş oluşturma
 - [ ] **0.4:** Verwaltung'da görev dağıtımı, dönüş önizleme ve çakışma ekranı
-- [ ] **0.5:** Word karne çıktısı (`Zeugnis.Export`, OpenXml, tarayıcıda)
+- [ ] **0.5:** Word şablonu yükleme ve karne çıktısı (`Zeugnis.Export`, OpenXml, tarayıcıda)
 - [ ] Sonra: hareketsizlikte otomatik kapanma, kullanıcı onaylı PWA güncellemesi
 
 ## Kurallar

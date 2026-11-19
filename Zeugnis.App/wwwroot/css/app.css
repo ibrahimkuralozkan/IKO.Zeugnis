@@ -185,3 +185,35 @@ tr.row-err td { background: var(--err-bg); color: var(--err-fg); }
     .row-actions { white-space: normal; }
     .row-actions .btn { margin: .2rem 0 .2rem .3rem; }
 }
+
+/* ---------- Kataloge (v0.2.1) ---------- */
+.grow-min { flex: 1 1 18rem; }
+.small { font-size: .88rem; margin: .5rem 0 0; }
+.file-btn { position: relative; overflow: hidden; display: inline-flex; align-items: center; }
+.file-btn input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; min-height: 0; }
+details.scale { margin-top: 1rem; border-top: 1px solid var(--border); padding-top: .75rem; }
+details.scale summary { cursor: pointer; color: var(--muted); }
+details.scale .form { margin-top: .75rem; max-width: 520px; }
+
+.section-card { padding: 1rem; }
+.section-head { display: flex; gap: .75rem; align-items: flex-start; flex-wrap: wrap; }
+.section-fields { flex: 1 1 16rem; min-width: 0; display: flex; flex-direction: column; gap: .4rem; }
+.title-input { font-weight: 700; font-size: 1.05rem; }
+.meta { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; font-size: .88rem; color: var(--muted); }
+.meta .inline { display: inline-flex; gap: .4rem; align-items: center; }
+.meta .inline input { min-height: 36px; padding: .3rem .5rem; width: 10rem; }
+.section-actions { display: flex; gap: .4rem; flex-wrap: wrap; }
+.move { display: flex; flex-direction: column; gap: 2px; }
+.icon-btn {
+    font: inherit; font-size: .8rem; min-width: 36px; min-height: 30px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+}
+.icon-btn:hover:not(:disabled) { color: var(--primary); border-color: var(--primary); }
+.icon-btn:disabled { opacity: .35; cursor: default; }
+
+ol.items { list-style: none; padding: 0; margin: .9rem 0 .5rem; display: flex; flex-direction: column; gap: .4rem; counter-reset: item; }
+ol.items li { display: flex; gap: .5rem; align-items: center; }
+ol.items li::before { counter-increment: item; content: counter(item) "."; color: var(--muted); min-width: 1.6rem; text-align: right; font-size: .9rem; }
+ol.items textarea, ol.items input { flex: 1; min-height: 40px; padding: .45rem .6rem; resize: vertical; field-sizing: content; }
+.add-item { display: flex; gap: .5rem; margin-left: 2.1rem; }
+.add-item input { flex: 1; min-height: 40px; }

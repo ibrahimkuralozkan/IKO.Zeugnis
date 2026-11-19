@@ -1,0 +1,375 @@
+@page "/verwaltung/kataloge"
+@inherits AdminPageBase
+@inject FileService Files
+
+<PageTitle>Kataloge – Verwaltung</PageTitle>
+
+<AdminFrame Error="@Error" Success="@Success">
+    @if (File is { } f)
+    {
+        <div class="toolbar">
+            @if (f.Catalogs.Count > 0)
+            {
+                <label class="field compact">
+                    <span>Katalog</span>
+                    <select @onchange="e => Select(e.Value?.ToString())">
+                        @foreach (var c in f.Catalogs)
+                        {
+                            <option value="@c.Id" selected="@(c.Id == Current?.Id)">@c.Title</option>
+                        }
+                    </select>
+                </label>
+            }
+            <button class="btn primary" @onclick="() => ToggleNew(copy: false)">+ Katalog</button>
+            @if (Current is not null)
+            {
+                <button class="btn" @onclick="() => ToggleNew(copy: true)">Kopieren</button>
+            }
+            <button class="btn" @onclick="ExportAsync" disabled="@(f.Catalogs.Count == 0)">Exportieren</button>
+            <label class="btn file-btn">
+                Importieren
+                <InputFile OnChange="ImportAsync" accept=".zkatalog,.json" />
+            </label>
+        </div>
+
+        @if (_newOpen)
+        {
+            <form class="card form" @onsubmit="CreateCatalog" @onsubmit:preventDefault>
+                <h2>@(_copyFrom is null ? "Neuer Katalog" : $"„{CatalogEditor.ById(f, _copyFrom).Title}“ kopieren nach")</h2>
+                <div class="row">
+                    <label class="field"><span>Jahrgang</span><GradeSelect @bind-Value="_newGrade" /></label>
+                    <label class="field">
+                        <span>Bildungsgang</span>
+                        <select @bind="_newTrack">
+                            @foreach (var t in Labels.Tracks)
+                            {
+                                <option value="@t">@Labels.Of(t)</option>
+                            }
+                        </select>
+                    </label>
+                    <button class="btn primary align-end" type="submit">Anlegen</button>
+                    <button class="btn align-end" type="button" @onclick="() => _newOpen = false">Abbrechen</button>
+                </div>
+                <p class="muted">Je Jahrgang und Bildungsgang gibt es genau einen Katalog. Er gilt für alle Klassen dieses Jahrgangs.</p>
+            </form>
+        }
+
+        @if (Current is not { } cat)
+        {
+            <div class="card">
+                <h2>Noch keine Kataloge</h2>
+                <p class="muted">
+                    Ein Katalog legt fest, was im Zeugnis bewertet wird: Bereiche mit Ankreuzkriterien, Noten, Freitexte und Auswahlfelder.
+                    Legen Sie einen Katalog an oder importieren Sie eine Katalogdatei (<code>.zkatalog</code>).
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="card">
+                <div class="card-head">
+                    <div class="grow-min">
+                        <label class="field">
+                            <span>Titel (Klasse @cat.Grade · @Labels.Of(cat.Track))</span>
+                            <input value="@cat.Title" @onchange="e => Change(x => CatalogEditor.SetTitle(x, cat.Id, e.Value?.ToString() ?? string.Empty))" />
+                        </label>
+                    </div>
+                    <div class="actions align-end">
+                        @if (_deleteCatalog)
+                        {
+                            <button class="btn danger" @onclick="RemoveCatalog">Katalog wirklich entfernen</button>
+                            <button class="btn" @onclick="() => _deleteCatalog = false">Abbrechen</button>
+                        }
+                        else
+                        {
+                            <button class="btn" @onclick="() => { ClearMessages(); _deleteCatalog = true; }">Katalog entfernen</button>
+                        }
+                    </div>
+                </div>
+
+                <details class="scale">
+                    <summary>Bewertungsskala: @string.Join(" · ", cat.RatingScale)</summary>
+                    <div class="form">
+                        @for (var i = 0; i < _scale.Count; i++)
+                        {
+                            var index = i;
+                            <div class="row">
+                                <label class="field"><span>Stufe @(index + 1)</span><input @bind="_scale[index]" /></label>
+                                @if (_scale.Count > 2)
+                                {
+                                    <button class="btn align-end" type="button" @onclick="() => _scale.RemoveAt(index)" aria-label="Stufe entfernen">✕</button>
+                                }
+                            </div>
+                        }
+                        <div class="actions">
+                            @if (_scale.Count < CatalogEditor.MaxScaleSteps)
+                            {
+                                <button class="btn" type="button" @onclick="() => _scale.Add(string.Empty)">+ Stufe</button>
+                            }
+                            <button class="btn primary" type="button" @onclick="SaveScale">Skala übernehmen</button>
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            <form class="card form" @onsubmit="AddSection" @onsubmit:preventDefault>
+                <h2>Bereich hinzufügen</h2>
+                <div class="row">
+                    <label class="field grow"><span>Titel im Zeugnis</span><input @bind="_secTitle" placeholder="z. B. Deutsch – Lesen" /></label>
+                    <label class="field"><span>Fach (für Fachlehrkräfte)</span><input @bind="_secSubject" placeholder="z. B. Deutsch" /></label>
+                    <label class="field">
+                        <span>Art</span>
+                        <select @bind="_secKind">
+                            @foreach (var k in Kinds)
+                            {
+                                <option value="@k">@KindLabel(k)</option>
+                            }
+                        </select>
+                    </label>
+                    <button class="btn primary align-end" type="submit">Hinzufügen</button>
+                </div>
+            </form>
+
+            @if (cat.Sections.Count == 0)
+            {
+                <p class="muted">Dieser Katalog hat noch keine Bereiche.</p>
+            }
+
+            @for (var si = 0; si < cat.Sections.Count; si++)
+            {
+                var s = cat.Sections[si];
+                var first = si == 0;
+                var last = si == cat.Sections.Count - 1;
+                <section class="card section-card">
+                    <div class="section-head">
+                        <div class="move">
+                            <button class="icon-btn" disabled="@first" @onclick="() => Change(x => CatalogEditor.MoveSection(x, cat.Id, s.Kind, s.Key, -1))" aria-label="nach oben">▲</button>
+                            <button class="icon-btn" disabled="@last" @onclick="() => Change(x => CatalogEditor.MoveSection(x, cat.Id, s.Kind, s.Key, 1))" aria-label="nach unten">▼</button>
+                        </div>
+                        <div class="section-fields">
+                            <input class="title-input" value="@s.Title" aria-label="Titel"
+                                   @onchange="e => Change(x => CatalogEditor.UpdateSection(x, cat.Id, s.Kind, s.Key, e.Value?.ToString() ?? string.Empty, s.Subject))" />
+                            <div class="meta">
+                                <span class="badge">@KindLabel(s.Kind)</span>
+                                <label class="inline">Fach
+                                    <input value="@s.Subject" aria-label="Fach"
+                                           @onchange="e => Change(x => CatalogEditor.UpdateSection(x, cat.Id, s.Kind, s.Key, s.Title, e.Value?.ToString() ?? string.Empty))" />
+                                </label>
+                                <code title="Feldschlüssel – ändert sich nie">@KeyLabel(s)</code>
+                            </div>
+                        </div>
+                        <div class="section-actions">
+                            @if (_deleteSection == (s.Kind, s.Key))
+                            {
+                                var count = CatalogEditor.CountSectionValues(f, cat.Id, s.Kind, s.Key);
+                                <button class="btn danger" @onclick="() => RemoveSection(s)">@(count > 0 ? $"Mit {count} Werten entfernen" : "Wirklich entfernen")</button>
+                                <button class="btn" @onclick="() => _deleteSection = null">Abbrechen</button>
+                            }
+                            else
+                            {
+                                <button class="btn" @onclick="() => { ClearMessages(); _deleteSection = (s.Kind, s.Key); }">Entfernen</button>
+                            }
+                        </div>
+                    </div>
+
+                    @if (s.Kind is FieldKind.Rating or FieldKind.Selection)
+                    {
+                        <ol class="items">
+                            @for (var ii = 0; ii < s.Items.Count; ii++)
+                            {
+                                var item = s.Items[ii];
+                                var firstItem = ii == 0;
+                                var lastItem = ii == s.Items.Count - 1;
+                                <li>
+                                    <div class="move">
+                                        <button class="icon-btn" disabled="@firstItem" @onclick="() => Change(x => CatalogEditor.MoveItem(x, cat.Id, s.Kind, s.Key, item.Id, -1))" aria-label="nach oben">▲</button>
+                                        <button class="icon-btn" disabled="@lastItem" @onclick="() => Change(x => CatalogEditor.MoveItem(x, cat.Id, s.Kind, s.Key, item.Id, 1))" aria-label="nach unten">▼</button>
+                                    </div>
+                                    @if (s.Kind == FieldKind.Rating)
+                                    {
+                                        <textarea rows="1" class="autogrow" aria-label="Kriterium"
+                                                  @onchange="e => Change(x => CatalogEditor.UpdateItem(x, cat.Id, s.Kind, s.Key, item.Id, e.Value?.ToString() ?? string.Empty))">@item.Text</textarea>
+                                    }
+                                    else
+                                    {
+                                        <input value="@item.Text" aria-label="Auswahlmöglichkeit"
+                                               @onchange="e => Change(x => CatalogEditor.UpdateItem(x, cat.Id, s.Kind, s.Key, item.Id, e.Value?.ToString() ?? string.Empty))" />
+                                    }
+                                    @if (_deleteItem == (s.Kind, s.Key, item.Id))
+                                    {
+                                        var used = CatalogEditor.CountItemValues(f, cat.Id, s.Kind, s.Key, item.Id);
+                                        <button class="btn danger" @onclick="() => RemoveItem(s, item.Id)">@(used > 0 ? $"Mit {used} Werten entfernen" : "Entfernen")</button>
+                                        <button class="btn" @onclick="() => _deleteItem = null">✕</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="icon-btn" @onclick="() => { ClearMessages(); _deleteItem = (s.Kind, s.Key, item.Id); }" aria-label="Eintrag entfernen">🗑</button>
+                                    }
+                                </li>
+                            }
+                        </ol>
+                        <form class="add-item" @onsubmit="() => AddItem(s)" @onsubmit:preventDefault>
+                            <input @bind="_newItem[ItemSlot(s)]" placeholder="@(s.Kind == FieldKind.Rating ? "Neues Kriterium, z. B. „liest Texte flüssig“" : "Neue Auswahlmöglichkeit")" />
+                            <button class="btn" type="submit">+ hinzufügen</button>
+                        </form>
+                    }
+                    else if (s.Kind == FieldKind.Grade)
+                    {
+                        <p class="muted small">Note 1–6 für das Fach.</p>
+                    }
+                    else
+                    {
+                        <p class="muted small">Freitext, z. B. Bemerkungen.</p>
+                    }
+                </section>
+            }
+        }
+    }
+</AdminFrame>
+
+@code {
+    private static readonly FieldKind[] Kinds = [FieldKind.Rating, FieldKind.Grade, FieldKind.Text, FieldKind.Selection];
+
+    private string? _selectedId;
+    private bool _newOpen;
+    private string? _copyFrom;
+    private int _newGrade = 1;
+    private StudentTrack _newTrack;
+    private bool _deleteCatalog;
+    private List<string> _scale = [];
+    private string? _scaleFor;
+
+    private string _secTitle = "";
+    private string _secSubject = "";
+    private FieldKind _secKind = FieldKind.Rating;
+    private (FieldKind, string)? _deleteSection;
+    private (FieldKind, string, string)? _deleteItem;
+    private readonly Dictionary<string, string> _newItem = [];
+
+    private Catalog? Current
+    {
+        get
+        {
+            var all = File?.Catalogs;
+            if (all is null || all.Count == 0) return null;
+            var c = all.FirstOrDefault(x => x.Id == _selectedId) ?? all[0];
+            _selectedId = c.Id;
+            if (_scaleFor != c.Id) { _scale = [.. c.RatingScale]; _scaleFor = c.Id; }
+            return c;
+        }
+    }
+
+    private static string KindLabel(FieldKind k) => k switch
+    {
+        FieldKind.Rating => "Ankreuzbewertung",
+        FieldKind.Grade => "Note",
+        FieldKind.Text => "Freitext",
+        _ => "Auswahl",
+    };
+
+    private static string KeyLabel(CatalogSection s) =>
+        s.Kind == FieldKind.Rating ? $"{new FieldKey(FieldKind.Rating, s.Key)}.*" : new FieldKey(s.Kind, s.Key).ToString();
+
+    /// <summary>Eingabefeld „neuer Eintrag“ je Bereich; legt den Platz bei Bedarf an (für @bind).</summary>
+    private string ItemSlot(CatalogSection s)
+    {
+        var slot = $"{_selectedId}|{s.Kind}:{s.Key}";
+        _newItem.TryAdd(slot, string.Empty);
+        return slot;
+    }
+
+    private void Select(string? id)
+    {
+        _selectedId = id;
+        _deleteCatalog = false;
+        _deleteSection = null;
+        _deleteItem = null;
+        ClearMessages();
+    }
+
+    private void ToggleNew(bool copy)
+    {
+        ClearMessages();
+        _newOpen = !_newOpen || (copy ? _copyFrom is null : _copyFrom is not null);
+        _copyFrom = copy ? Current?.Id : null;
+        if (copy && Current is { } c) { _newGrade = c.Grade; _newTrack = c.Track == StudentTrack.Regular ? StudentTrack.SE : StudentTrack.Regular; }
+    }
+
+    private void CreateCatalog()
+    {
+        Catalog? created = null;
+        var ok = _copyFrom is { } src
+            ? Change(f => created = CatalogEditor.Copy(f, src, _newGrade, _newTrack, DateTimeOffset.UtcNow), "Katalog kopiert.")
+            : Change(f => created = CatalogEditor.Create(f, _newGrade, _newTrack, DateTimeOffset.UtcNow), "Katalog angelegt.");
+        if (ok && created is not null)
+        {
+            _newOpen = false;
+            _selectedId = created.Id;
+        }
+    }
+
+    private void RemoveCatalog()
+    {
+        if (Current is { } c && Change(f => CatalogEditor.Remove(f, c.Id, DateTimeOffset.UtcNow), $"„{c.Title}“ entfernt."))
+            _selectedId = null;
+        _deleteCatalog = false;
+    }
+
+    private void SaveScale()
+    {
+        if (Current is { } c && Change(f => CatalogEditor.SetScale(f, c.Id, _scale), "Skala übernommen."))
+            _scaleFor = null;
+    }
+
+    private void AddSection()
+    {
+        if (Current is not { } c) return;
+        if (Change(f => CatalogEditor.AddSection(f, c.Id, _secTitle, _secSubject, _secKind, DateTimeOffset.UtcNow)))
+            _secTitle = "";
+    }
+
+    private void RemoveSection(CatalogSection s)
+    {
+        if (Current is { } c) Change(f => CatalogEditor.RemoveSection(f, c.Id, s.Kind, s.Key, DateTimeOffset.UtcNow), $"„{s.Title}“ entfernt.");
+        _deleteSection = null;
+    }
+
+    private void AddItem(CatalogSection s)
+    {
+        if (Current is not { } c) return;
+        var slot = ItemSlot(s);
+        if (Change(f => CatalogEditor.AddItem(f, c.Id, s.Kind, s.Key, _newItem.GetValueOrDefault(slot) ?? "")))
+            _newItem[slot] = "";
+    }
+
+    private void RemoveItem(CatalogSection s, string itemId)
+    {
+        if (Current is { } c) Change(f => CatalogEditor.RemoveItem(f, c.Id, s.Kind, s.Key, itemId, DateTimeOffset.UtcNow));
+        _deleteItem = null;
+    }
+
+    private async Task ExportAsync()
+    {
+        if (File is not { } f) return;
+        var bytes = CatalogTransfer.Export(f.Catalogs, DateTimeOffset.UtcNow);
+        await Files.DownloadAsync(bytes, $"Kataloge_{FileService.SafeFileName(f.School.Name)}{CatalogTransfer.Extension}", "application/json");
+    }
+
+    private async Task ImportAsync(InputFileChangeEventArgs e)
+    {
+        ClearMessages();
+        byte[] bytes;
+        try { bytes = await Files.ReadAsync(e.File); }
+        catch (ExchangeSecurityException ex) { Error = ex.Message; return; }
+        CatalogImportResult? result = null;
+        if (Change(f => result = CatalogTransfer.Import(f, bytes, DateTimeOffset.UtcNow)) && result is not null)
+        {
+            Success = (result.Imported.Count, result.Skipped.Count) switch
+            {
+                (0, _) => $"Nichts übernommen – bereits vorhanden: {string.Join(", ", result.Skipped)}.",
+                (_, 0) => $"Übernommen: {string.Join(", ", result.Imported)}.",
+                _ => $"Übernommen: {string.Join(", ", result.Imported)}. Bereits vorhanden (nicht überschrieben): {string.Join(", ", result.Skipped)}.",
+            };
+        }
+    }
+}

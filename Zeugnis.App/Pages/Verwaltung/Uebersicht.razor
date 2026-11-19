@@ -88,6 +88,14 @@ else
         if (f.Teachers.Count == 0) return ("verwaltung/lehrkraefte", "Lehrkräfte anlegen");
         if (f.Classes.Count == 0) return ("verwaltung/klassen", "Klassen anlegen");
         if (f.Students.Count == 0) return ("verwaltung/schueler", "Schüler anlegen oder importieren");
+        var missing = f.Students
+            .Select(s => (Grade: f.Classes.FirstOrDefault(c => c.Name == s.ClassName)?.Grade ?? 0, s.Track))
+            .Distinct()
+            .Where(x => x.Grade > 0 && CatalogEditor.For(f, x.Grade, x.Track) is null)
+            .OrderBy(x => x.Grade).ThenBy(x => x.Track)
+            .Select(x => CatalogEditor.DefaultTitle(x.Grade, x.Track))
+            .ToList();
+        if (missing.Count > 0) return ("verwaltung/kataloge", $"Kataloge anlegen ({string.Join(", ", missing)})");
         return null;
     }
 }
