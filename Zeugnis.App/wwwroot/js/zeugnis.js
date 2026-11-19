@@ -1,0 +1,46 @@
+// Browser-Seite von IKO.Zeugnis.
+// Enthält nur rohe Kryptografie und Dateihilfen; das Dateiformat liegt in C# (Zeugnis.Exchange.EnvelopeCodec).
+window.zeugnis = (() => {
+  const encoder = new TextEncoder();
+
+  async function deriveKey(password, salt, iterations) {
+    const material = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
+      material, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  }
+
+  // Ergebnis = Ciphertext || 16-Byte-Tag (identisch zur .NET-Implementierung).
+  async function encrypt(plain, password, salt, nonce, iterations, aad) {
+    const key = await deriveKey(password, salt, iterations);
+    return new Uint8Array(await crypto.subtle.encrypt(
+      { name: "AES-GCM", iv: nonce, additionalData: aad, tagLength: 128 }, key, plain));
+  }
+
+  async function decrypt(cipherAndTag, password, salt, nonce, iterations, aad) {
+    const key = await deriveKey(password, salt, iterations);
+    try {
+      return new Uint8Array(await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: nonce, additionalData: aad, tagLength: 128 }, key, cipherAndTag));
+    } catch {
+      throw new Error("ZEUGNIS_DECRYPT_FAILED");
+    }
+  }
+
+  function download(bytes, fileName, mime) {
+    const blob = new Blob([bytes], { type: mime || "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
+  const isSecure = () => !!(window.isSecureContext && crypto && crypto.subtle);
+
+  return { encrypt, decrypt, download, isSecure };
+})();

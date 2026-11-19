@@ -1,0 +1,46 @@
+@page "/lehrkraft"
+@implements IDisposable
+@inject TeacherSession Session
+@inject FileService Files
+
+<PageTitle>Lehrkraft – Zeugnis</PageTitle>
+
+<h1>Lehrkraft</h1>
+
+@if (Session.Assignment is not { } a)
+{
+    <OpenFileForm Title="Arbeitsauftrag öffnen" Accept=".zauftrag"
+                  Hint="Die Datei erhalten Sie von der Verwaltung, das Kennwort auf einem anderen Weg."
+                  OnOpen="Session.OpenAsync" />
+}
+else
+{
+    <div class="card">
+        <div class="card-head">
+            <div>
+                <h2>@a.Label · Klasse @a.ClassName</h2>
+                <p class="muted">@a.SchoolName · @a.Term · für @a.TeacherName</p>
+            </div>
+            <button class="btn" @onclick="Session.Close">Schließen</button>
+        </div>
+        <dl class="facts">
+            <div><dt>Schüler</dt><dd>@a.Students.Count</dd></div>
+            <div><dt>Bereiche</dt><dd>@a.Catalogs.SelectMany(c => c.Sections).Select(s => s.Title).Distinct().Count()</dd></div>
+            <div><dt>Abgabe bis</dt><dd>@a.ExpiresUtc.ToLocalTime().ToString("dd.MM.yyyy")</dd></div>
+        </dl>
+        <p class="alert info">Die Bewertungsansicht folgt in Version 0.3.</p>
+        <button class="btn primary" @onclick="DownloadResponseAsync">Rückgabe erstellen</button>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized() => Session.Changed += Refresh;
+    public void Dispose() => Session.Changed -= Refresh;
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    private async Task DownloadResponseAsync()
+    {
+        var (bytes, name) = await Session.CreateResponseAsync();
+        await Files.DownloadAsync(bytes, name);
+    }
+}

@@ -1,0 +1,140 @@
+/* IKO.Zeugnis – Grundstil. Touch-freundlich (iPad), hell/dunkel. */
+:root {
+    --bg: #f6f7fb;
+    --surface: #ffffff;
+    --text: #1f2333;
+    --muted: #5d6478;
+    --border: #dfe2ec;
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --primary-text: #ffffff;
+    --danger: #c62828;
+    --info-bg: #eef2ff;   --info-fg: #3730a3;
+    --ok-bg: #e8f6ee;     --ok-fg: #1b6b3a;
+    --warn-bg: #fff6e0;   --warn-fg: #7a5200;
+    --err-bg: #fdecec;    --err-fg: #a11d1d;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(20, 24, 40, .06), 0 4px 16px rgba(20, 24, 40, .06);
+    color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #12141c;
+        --surface: #1b1e29;
+        --text: #e8eaf2;
+        --muted: #a2a8bb;
+        --border: #2d3142;
+        --primary: #818cf8;
+        --primary-hover: #a5b4fc;
+        --primary-text: #12141c;
+        --danger: #f87171;
+        --info-bg: #23264a;   --info-fg: #c7d2fe;
+        --ok-bg: #173323;     --ok-fg: #9ae6b4;
+        --warn-bg: #3a2e12;   --warn-fg: #fcd98a;
+        --err-bg: #3d1a1a;    --err-fg: #fca5a5;
+        --shadow: none;
+    }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-text-size-adjust: 100%;
+}
+
+h1 { font-size: 1.7rem; margin: 0 0 1rem; }
+h2 { font-size: 1.2rem; margin: 0 0 .5rem; }
+a { color: var(--primary); }
+code { font-size: .9em; background: var(--info-bg); color: var(--info-fg); padding: 0 .3em; border-radius: 4px; }
+.muted { color: var(--muted); margin: 0 0 1rem; }
+
+/* Rahmen */
+.shell { min-height: 100vh; display: flex; flex-direction: column; }
+.topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: max(.75rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) .75rem max(1rem, env(safe-area-inset-left));
+    background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.brand { display: flex; align-items: center; gap: .6rem; font-weight: 700; font-size: 1.15rem; color: var(--text); text-decoration: none; }
+.brand-mark {
+    display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 9px;
+    background: var(--primary); color: var(--primary-text); font-weight: 800;
+}
+.version { color: var(--muted); font-size: .85rem; }
+.content { width: 100%; max-width: 1100px; margin: 0 auto; padding: 1.5rem max(1rem, env(safe-area-inset-left)) 3rem; }
+
+/* Karten */
+.card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 1.25rem; margin-bottom: 1rem; min-width: 0;
+}
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+.actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+.hero { margin: 1rem 0 1.5rem; }
+.role-grid, .two-col { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); align-items: start; }
+.card.role { display: block; color: inherit; text-decoration: none; transition: border-color .15s, transform .15s; }
+.card.role:hover, .card.role:focus-visible { border-color: var(--primary); transform: translateY(-2px); }
+.card.role p { color: var(--muted); margin: 0; }
+.role-icon { display: block; font-size: 1.8rem; color: var(--primary); margin-bottom: .4rem; }
+
+/* Formulare – große Touch-Ziele */
+.form { display: flex; flex-direction: column; gap: .9rem; }
+.form .muted { margin: 0; }
+.field { display: flex; flex-direction: column; gap: .3rem; font-size: .92rem; color: var(--muted); min-width: 0; flex: 1; }
+.row { display: flex; gap: .75rem; flex-wrap: wrap; }
+input, select, textarea {
+    font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 10px; padding: .65rem .8rem; min-height: 46px; width: 100%;
+}
+input[type=file] { padding: .5rem; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+.btn {
+    font: inherit; font-weight: 600; min-height: 46px; padding: .55rem 1.1rem; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+}
+.btn:hover:not(:disabled) { border-color: var(--primary); }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
+.btn.primary:hover:not(:disabled) { background: var(--primary-hover); }
+.btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.alert { border-radius: 10px; padding: .75rem 1rem; margin: .75rem 0; }
+.alert .btn { margin: .5rem .5rem 0 0; }
+.alert.info { background: var(--info-bg); color: var(--info-fg); }
+.alert.success { background: var(--ok-bg); color: var(--ok-fg); }
+.alert.warn { background: var(--warn-bg); color: var(--warn-fg); }
+.alert.error { background: var(--err-bg); color: var(--err-fg); }
+
+.facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: .75rem; margin: 1rem 0; }
+.facts dt { color: var(--muted); font-size: .85rem; }
+.facts dd { margin: 0; font-size: 1.4rem; font-weight: 700; }
+.facts > div { min-width: 0; }
+
+details.card summary { cursor: pointer; font-weight: 600; }
+.audit { list-style: none; padding: 0; margin: .75rem 0 0; font-size: .92rem; }
+.audit li { padding: .4rem 0; border-top: 1px solid var(--border); overflow-wrap: anywhere; }
+.audit time { color: var(--muted); margin-right: .4rem; }
+
+/* Blazor-Standardelemente */
+#blazor-error-ui {
+    color-scheme: light only; background: lightyellow; bottom: 0; box-shadow: 0 -1px 2px rgba(0, 0, 0, .2);
+    display: none; left: 0; padding: .6rem 1.25rem .7rem; position: fixed; width: 100%; z-index: 1000; color: #222;
+}
+#blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: .75rem; top: .5rem; }
+
+.loading-progress { position: relative; display: block; width: 8rem; height: 8rem; margin: 20vh auto 1rem; }
+.loading-progress circle { fill: none; stroke: var(--border); stroke-width: .6rem; transform-origin: 50% 50%; transform: rotate(-90deg); }
+.loading-progress circle:last-child {
+    stroke: var(--primary);
+    stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * .8), 500%;
+    transition: stroke-dasharray .05s ease-in-out;
+}
+.loading-progress-text { position: absolute; text-align: center; font-weight: bold; inset: calc(20vh + 3.25rem) 0 auto .2rem; }
+.loading-progress-text:after { content: var(--blazor-load-percentage-text, "Lädt"); }

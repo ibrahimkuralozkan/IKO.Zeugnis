@@ -1,0 +1,63 @@
+name: Test & PWA auf GitHub Pages veröffentlichen
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Tests
+        run: dotnet test IKO.Zeugnis.sln --configuration Release
+
+      - name: Basis-Pfad für GitHub Pages setzen
+        run: sed -i "s#<base href=\"/\" />#<base href=\"/${{ github.event.repository.name }}/\" />#" Zeugnis.App/wwwroot/index.html
+
+      - name: PWA veröffentlichen
+        run: dotnet publish Zeugnis.App/Zeugnis.App.csproj --configuration Release --output publish
+
+      - name: SPA-Fallback ergänzen
+        run: |
+          cp publish/wwwroot/index.html publish/wwwroot/404.html
+          touch publish/wwwroot/.nojekyll
+
+      - name: Sicherheitsprüfung – keine Datendateien im Paket
+        run: |
+          if find publish/wwwroot -type f \( -name '*.zschule' -o -name '*.zauftrag' -o -name '*.zantwort' -o -name '*.docx' \) | grep -q .; then
+            echo "Datendateien im Veröffentlichungspaket gefunden – Abbruch."; exit 1
+          fi
+
+      - uses: actions/upload-pages-artifact@v4
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: publish/wwwroot
+          include-hidden-files: true
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,63 @@
+@* Datei wählen + Kennwort eingeben + öffnen. Fehler werden verständlich angezeigt. *@
+@inject FileService Files
+
+<form class="card form" @onsubmit="SubmitAsync" @onsubmit:preventDefault>
+    <h2>@Title</h2>
+    @if (!string.IsNullOrEmpty(Hint))
+    {
+        <p class="muted">@Hint</p>
+    }
+
+    <label class="field">
+        <span>Datei (@Accept)</span>
+        <InputFile OnChange="OnFileChosen" accept="@Accept" disabled="@_busy" />
+    </label>
+
+    <label class="field">
+        <span>Kennwort</span>
+        <input type="password" @bind="_password" autocomplete="off" disabled="@_busy" />
+    </label>
+
+    @if (_error is not null)
+    {
+        <p class="alert error" role="alert">@_error</p>
+    }
+
+    <button class="btn primary" type="submit" disabled="@(_busy || _file is null || string.IsNullOrEmpty(_password))">
+        @(_busy ? "Wird geöffnet …" : "Öffnen")
+    </button>
+</form>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter, EditorRequired] public string Accept { get; set; } = "";
+    [Parameter] public string? Hint { get; set; }
+    [Parameter, EditorRequired] public Func<byte[], string, Task> OnOpen { get; set; } = default!;
+
+    private IBrowserFile? _file;
+    private string _password = "";
+    private string? _error;
+    private bool _busy;
+
+    private void OnFileChosen(InputFileChangeEventArgs e)
+    {
+        _file = e.File;
+        _error = null;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_file is null) return;
+        _busy = true;
+        _error = null;
+        try
+        {
+            var bytes = await Files.ReadAsync(_file);
+            await OnOpen(bytes, _password);
+            _password = "";
+        }
+        catch (ExchangeSecurityException ex) { _error = ex.Message; }
+        catch (Exception) { _error = "Die Datei konnte nicht geöffnet werden."; }
+        finally { _busy = false; }
+    }
+}
