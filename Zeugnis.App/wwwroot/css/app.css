@@ -296,3 +296,24 @@ ol.items textarea, ol.items input { flex: 1; min-height: 40px; padding: .45rem .
     .choice .mark { font-size: 1.1rem; }
     .choice.on .lbl { color: var(--primary-text); }
 }
+
+/* ---------- Aufträge (v0.4) ---------- */
+fieldset.choose { border: 1px solid var(--border); border-radius: 12px; padding: .75rem 1rem 1rem; margin: 0; min-width: 0; }
+fieldset.choose legend { padding: 0 .4rem; font-weight: 600; color: var(--muted); font-size: .92rem; }
+.check-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .35rem .9rem; margin-top: .5rem; }
+.check-grid .check { align-items: center; min-height: 36px; }
+.subject-group { padding: .5rem 0; border-top: 1px solid var(--border); }
+.subject-group:first-of-type { border-top: none; }
+.check.subject { font-size: 1rem; }
+.small-actions .btn { min-height: 36px; padding: .25rem .8rem; font-size: .9rem; }
+.mono { font-family: ui-monospace, "SF Mono", Consolas, monospace; letter-spacing: .03em; }
+code.big { font-size: 1.15rem; padding: .15rem .5rem; }
+.handover { display: flex; flex-direction: column; gap: .4rem; margin-top: 1rem; }
+.return-card { border-color: var(--primary); }
+.return-card h3 { font-size: 1rem; margin: 1rem 0 .3rem; }
+.return-card details { margin: .75rem 0; }
+.return-card details summary { cursor: pointer; color: var(--muted); }
+.check.pick { padding: .35rem .5rem; border-radius: 8px; border: 1px solid transparent; cursor: pointer; }
+.check.pick.picked { border-color: var(--primary); background: var(--info-bg); }
+.check.pick input { width: 1.1rem; height: 1.1rem; }
+table.conflicts td { vertical-align: top; }

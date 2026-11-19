@@ -51,10 +51,22 @@ public sealed class IssuedAssignment
     public List<string> AllowedFields { get; set; } = [];
     public DateTimeOffset IssuedUtc { get; set; }
     public DateTimeOffset ExpiresUtc { get; set; }
+    /// <summary>Abgeschlossen: keine weiteren Rückgaben; Stammdaten der Schüler wieder frei änderbar.</summary>
     public bool Revoked { get; set; }
-    /// <summary>Werte zum Zeitpunkt der Ausgabe: StudentId → Feldschlüssel → Wert.</summary>
+    /// <summary>
+    /// Kennwort des Auftrags. Liegt nur in der verschlüsselten Schuldatei, damit Rückgaben ohne Eingabe
+    /// zugeordnet und geöffnet werden können und der Auftrag erneut erzeugt werden kann.
+    /// </summary>
+    public string Password { get; set; } = "";
+    /// <summary>Werte zum Zeitpunkt der Ausgabe (bzw. der letzten Übernahme): StudentId → Feldschlüssel → Wert.</summary>
     public Dictionary<Guid, Dictionary<string, FieldValue>> Baseline { get; set; } = [];
+    public List<ReturnRecord> Returns { get; set; } = [];
 }
+
+/// <summary>Protokoll einer übernommenen Rückgabe.</summary>
+public sealed record ReturnRecord(
+    Guid ResponseId, DateTimeOffset CreatedUtc, DateTimeOffset ImportedUtc,
+    int Applied, int ConflictsTakenIncoming, int ConflictsKeptSchool, int Unchanged);
 
 /// <summary>
 /// Arbeitsauftrag (<c>.zauftrag</c>) für eine Lehrkraft: nur ihre Schüler, nur ihre Felder.

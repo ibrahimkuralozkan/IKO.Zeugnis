@@ -133,6 +133,8 @@ public static class MergeEngine
         }
 
         school.ProcessedResponseIds.Add(preview.Response.ResponseId);
+        preview.Assignment.Returns.Add(new ReturnRecord(preview.Response.ResponseId, preview.Response.CreatedUtc, now,
+            applied, taken, kept, preview.UnchangedCount));
         school.Audit.Add(new AuditEntry(now, "Rückgabe übernommen",
             $"{by} · {preview.Assignment.ClassName} · {preview.Assignment.Label} · {applied} übernommen, " +
             $"{taken + kept} Konflikte ({taken} Lehrkraft / {kept} Verwaltung) · {preview.Response.ResponseId:N}"));

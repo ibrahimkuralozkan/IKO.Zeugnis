@@ -1,0 +1,107 @@
+@* Vorschau einer Rückgabe: was übernommen wird, und Entscheidung bei Konflikten. Es wird erst bei „Übernehmen“ geschrieben. *@
+
+@{
+    var p = Loaded.Preview;
+    var a = Loaded.Assignment;
+    var conflicts = p.Conflicts.ToList();
+    var applies = p.Applies.ToList();
+}
+<div class="card return-card">
+    <div class="card-head">
+        <div>
+            <h2>Rückgabe: @a.TeacherName · @a.ClassName · @a.Label</h2>
+            <p class="muted">
+                @FileName · erstellt @Loaded.Response.CreatedUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                @if (a.Returns.Count > 0) { <span> · @(a.Returns.Count + 1). Rückgabe zu diesem Auftrag</span> }
+            </p>
+        </div>
+    </div>
+
+    <p>
+        <span class="badge ok">@applies.Count neue Werte</span>
+        <span class="badge @(conflicts.Count > 0 ? "warn" : "")">@conflicts.Count Konflikte</span>
+        <span class="badge">@p.UnchangedCount unverändert</span>
+    </p>
+
+    @if (conflicts.Count > 0)
+    {
+        <h3>Konflikte</h3>
+        <p class="muted small">Diese Felder wurden nach Ausgabe des Auftrags auch in der Schuldatei geändert. Bitte je Feld entscheiden.</p>
+        <div class="actions small-actions">
+            <button class="btn" @onclick="() => SetAll(ConflictChoice.TakeIncoming)">alle von Lehrkraft</button>
+            <button class="btn" @onclick="() => SetAll(ConflictChoice.KeepSchool)">alle aus Schuldatei</button>
+        </div>
+        <div class="table-wrap">
+            <table class="list conflicts">
+                <thead><tr><th>Schüler</th><th>Feld</th><th>Schuldatei</th><th>Lehrkraft</th></tr></thead>
+                <tbody>
+                    @foreach (var c in conflicts)
+                    {
+                        var (field, format) = FieldLabels.Describe(School, c.StudentId, c.FieldKey);
+                        var keyTuple = (c.StudentId, c.FieldKey);
+                        var take = _choices.GetValueOrDefault(keyTuple) == ConflictChoice.TakeIncoming;
+                        <tr>
+                            <td>@c.StudentName</td>
+                            <td>@field</td>
+                            <td>
+                                <label class="check pick @(!take ? "picked" : "")">
+                                    <input type="radio" name="@($"{Loaded.Response.ResponseId}-{c.StudentId}-{c.FieldKey}")" checked="@(!take)"
+                                           @onchange="() => _choices[keyTuple] = ConflictChoice.KeepSchool" />
+                                    <span>@format(c.SchoolValue) <span class="muted">(@c.SchoolChangedBy)</span></span>
+                                </label>
+                            </td>
+                            <td>
+                                <label class="check pick @(take ? "picked" : "")">
+                                    <input type="radio" name="@($"{Loaded.Response.ResponseId}-{c.StudentId}-{c.FieldKey}")" checked="@take"
+                                           @onchange="() => _choices[keyTuple] = ConflictChoice.TakeIncoming" />
+                                    <span>@format(c.IncomingValue)</span>
+                                </label>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (applies.Count > 0)
+    {
+        <details>
+            <summary>@applies.Count neue Werte anzeigen</summary>
+            <div class="table-wrap scroll">
+                <table class="list">
+                    <thead><tr><th>Schüler</th><th>Feld</th><th>bisher</th><th>neu</th></tr></thead>
+                    <tbody>
+                        @foreach (var i in applies)
+                        {
+                            var (field, format) = FieldLabels.Describe(School, i.StudentId, i.FieldKey);
+                            <tr><td>@i.StudentName</td><td>@field</td><td class="muted">@format(i.SchoolValue)</td><td>@format(i.IncomingValue)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </details>
+    }
+
+    <div class="actions">
+        <button class="btn primary" @onclick="() => OnApply.InvokeAsync(_choices)">
+            @(applies.Count + conflicts.Count == 0 ? "Als gelesen markieren" : "Übernehmen")
+        </button>
+        <button class="btn" @onclick="OnDiscard">Verwerfen</button>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public SchoolFile School { get; set; } = default!;
+    [Parameter, EditorRequired] public LoadedResponse Loaded { get; set; } = default!;
+    [Parameter] public string FileName { get; set; } = "";
+    [Parameter] public EventCallback<IReadOnlyDictionary<(Guid, string), ConflictChoice>> OnApply { get; set; }
+    [Parameter] public EventCallback OnDiscard { get; set; }
+
+    private readonly Dictionary<(Guid, string), ConflictChoice> _choices = [];
+
+    private void SetAll(ConflictChoice choice)
+    {
+        foreach (var c in Loaded.Preview.Conflicts) _choices[(c.StudentId, c.FieldKey)] = choice;
+    }
+}

@@ -52,24 +52,45 @@ public sealed class EnvelopeCodec(IAeadCipher cipher)
             throw new ExchangeSecurityException($"Das Kennwort muss mindestens {MinPasswordLength} Zeichen lang sein.");
     }
 
-    public async Task<byte[]> SealAsync<T>(T document, EnvelopeKind kind, string password)
+    /// <param name="reference">
+    /// Optionaler, unverschlüsselter Verweis (z. B. Auftragskennung). Er ist mitauthentifiziert, also nicht fälschbar,
+    /// und erlaubt der Verwaltung, das passende Kennwort zu finden, ohne es einzugeben.
+    /// Darf keine personenbezogenen Daten enthalten.
+    /// </param>
+    public async Task<byte[]> SealAsync<T>(T document, EnvelopeKind kind, string password, string? reference = null)
     {
         ValidatePassword(password);
+        if (reference is { Length: > 100 }) throw new ArgumentException("Verweis zu lang.", nameof(reference));
         var plain = JsonSerializer.SerializeToUtf8Bytes(document, Json);
         var salt = RandomNumberGenerator.GetBytes(16);
         var nonce = RandomNumberGenerator.GetBytes(12);
         try
         {
-            var sealedBytes = await cipher.EncryptAsync(plain, password, salt, nonce, Iterations, Aad(kind));
+            var sealedBytes = await cipher.EncryptAsync(plain, password, salt, nonce, Iterations, Aad(kind, reference));
             var envelope = new Envelope
             {
-                Format = Format, Version = Version, Kind = kind, Kdf = "PBKDF2-SHA256", Iterations = Iterations,
+                Format = Format, Version = Version, Kind = kind, Ref = reference, Kdf = "PBKDF2-SHA256", Iterations = Iterations,
                 Salt = Convert.ToBase64String(salt), Nonce = Convert.ToBase64String(nonce),
                 Ciphertext = Convert.ToBase64String(sealedBytes),
             };
             return JsonSerializer.SerializeToUtf8Bytes(envelope, Json);
         }
         finally { CryptographicOperations.ZeroMemory(plain); }
+    }
+
+    /// <summary>Liest Dateiart und Verweis ohne Entschlüsselung (zum Zuordnen). Ungeprüft, bis <see cref="OpenAsync{T}"/> gelingt.</summary>
+    public static (EnvelopeKind Kind, string? Reference) Peek(byte[] bytes)
+    {
+        try
+        {
+            var e = JsonSerializer.Deserialize<Envelope>(bytes, Json) ?? throw new JsonException();
+            if (e.Format != Format || e.Version != Version) throw new ExchangeSecurityException("Dieses Dateiformat wird nicht unterstützt.");
+            return (e.Kind, e.Ref);
+        }
+        catch (Exception ex) when (ex is JsonException or NotSupportedException)
+        {
+            throw new ExchangeSecurityException("Die Datei ist beschädigt oder keine Zeugnis-Datei.");
+        }
     }
 
     public async Task<T> OpenAsync<T>(byte[] bytes, EnvelopeKind kind, string password)
@@ -97,7 +118,7 @@ public sealed class EnvelopeCodec(IAeadCipher cipher)
             envelope.Iterations is < 100_000 or > 2_000_000)
             throw new ExchangeSecurityException("Die Sicherheitsparameter der Datei sind ungültig.");
 
-        var plain = await cipher.DecryptAsync(sealedBytes, password, salt, nonce, envelope.Iterations, Aad(kind));
+        var plain = await cipher.DecryptAsync(sealedBytes, password, salt, nonce, envelope.Iterations, Aad(kind, envelope.Ref));
         try
         {
             return JsonSerializer.Deserialize<T>(plain, Json)
@@ -115,13 +136,15 @@ public sealed class EnvelopeCodec(IAeadCipher cipher)
         _ => kind.ToString(),
     };
 
-    private static byte[] Aad(EnvelopeKind kind) => Encoding.UTF8.GetBytes($"{Format}|{Version}|{kind}");
+    private static byte[] Aad(EnvelopeKind kind, string? reference) =>
+        Encoding.UTF8.GetBytes(reference is null ? $"{Format}|{Version}|{kind}" : $"{Format}|{Version}|{kind}|{reference}");
 
     private sealed class Envelope
     {
         public string Format { get; set; } = "";
         public int Version { get; set; }
         public EnvelopeKind Kind { get; set; }
+        public string? Ref { get; set; }
         public string Kdf { get; set; } = "";
         public int Iterations { get; set; }
         public string Salt { get; set; } = "";

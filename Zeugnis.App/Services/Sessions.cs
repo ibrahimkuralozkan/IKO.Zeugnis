@@ -188,7 +188,7 @@ public sealed class TeacherSession(EnvelopeCodec codec, IJSRuntime js)
         if (Assignment is null || _password is null) throw new InvalidOperationException("Kein Arbeitsauftrag geöffnet.");
         var now = DateTimeOffset.UtcNow;
         var response = ResponseBuilder.Create(Assignment, now);
-        var bytes = await codec.SealAsync(response, EnvelopeKind.Response, _password);
+        var bytes = await codec.SealAsync(response, EnvelopeKind.Response, _password, ResponseBuilder.Reference(Assignment.AssignmentId));
         var name = $"Rueckgabe_{FileService.SafeFileName(Assignment.ClassName)}_{FileService.SafeFileName(Assignment.Label)}_{DateTime.Now:yyyyMMdd-HHmm}{EnvelopeCodec.Extension(EnvelopeKind.Response)}";
         LastResponseUtc = now;
         ChangedSinceResponse = false;

@@ -51,7 +51,7 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 - [x] **0.2:** Verwaltung içinde temel veriler: okul bilgileri, öğretmenler, sınıflar, öğrenciler (elle ve CSV ile; Excel için „CSV UTF-8“ ya da klasik CSV, Latin-1 umlautlar tanınır), kaydedilmemiş değişiklik uyarısı
 - [x] **0.2.1:** Katalog düzenleyici: her sınıf düzeyi ve eğitim yolu için bir katalog; bölümler (işaretleme, not, serbest metin, seçim), kriterler, değerlendirme ölçeği, kopyalama, `.zkatalog` dışa/içe aktarma. Anahtarlar sabit kalır; silinen kimlikler yeniden kullanılmaz
 - [x] **0.3:** Değerlendirme ekranı (iPad öncelikli; öğretmen ve Verwaltung aynı ekranı kullanır): öğrenci listesi ve ilerleme, dokunmatik ölçek/not/seçim düğmeleri, serbest metin, şifreli yerel ara kayıt (sayfa yenilense de veri kaybolmaz), dönüş dosyası oluşturma
-- [ ] **0.4:** Verwaltung'da görev dağıtımı, dönüş önizleme ve çakışma ekranı
+- [x] **0.4:** Verwaltung'da görevler: öğretmen, sınıf, öğrenci ve bölüm seçimi; otomatik parola (okul dosyasında saklanır); çakışma uyarısı; dosyayı yeniden üretme, süre uzatma, kapatma. Dönüşler: birden çok dosya, parolasız eşleştirme, önizleme, alan bazında çakışma kararı, dönüş kaydı
 - [ ] **0.5:** Word şablonu yükleme ve karne çıktısı (`Zeugnis.Export`, OpenXml, tarayıcıda)
 - [ ] Sonra: hareketsizlikte otomatik kapanma, kullanıcı onaylı PWA güncellemesi
 
@@ -67,3 +67,13 @@ Repo private olduğu için Pages yalnızca ücretli GitHub planında (Pro/Team) 
 
 1. Repo → Settings → Pages → Source: **GitHub Actions**
 2. Repo → Settings → Secrets and variables → Actions → Variables: `PAGES_ENABLED` = `true`
+
+## İş akışı (kısa)
+
+1. **Verwaltung** → okul dosyası, öğretmenler, sınıflar, öğrenciler, kataloglar.
+2. **Aufträge** → öğretmen, sınıf ve bölümleri seç → `.zauftrag` iner, parola ekranda görünür. **Okul dosyasını kaydet.**
+3. Dosyayı LOGINEO üzerinden, parolayı ayrı bir kanaldan öğretmene ilet.
+4. **Lehrkraft** → öğretmen dosyayı açar, doldurur (ara kayıt otomatik), `.zantwort` oluşturur ve LOGINEO'ya koyar.
+5. **Aufträge → Rückgaben einlesen** → önizleme, çakışma varsa karar ver, "Übernehmen" → okul dosyasını kaydet.
+
+Dönüş dosyasının başlığında şifrelenmemiş ama doğrulanan bir görev numarası bulunur (`Ref`). Verwaltung bu numarayla doğru görevi ve parolasını bulur. Numara kişisel veri içermez ve değiştirilirse dosya açılmaz.

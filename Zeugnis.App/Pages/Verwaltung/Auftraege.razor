@@ -1,0 +1,411 @@
+@page "/verwaltung/auftraege"
+@inherits AdminPageBase
+@inject FileService Files
+@inject EnvelopeCodec Codec
+
+<PageTitle>Aufträge – Verwaltung</PageTitle>
+
+<AdminFrame Error="@Error" Success="@Success">
+    @if (File is { } f)
+    {
+        @if (_mustSave)
+        {
+            <div class="alert warn">
+                <strong>Wichtig:</strong> Der Auftrag ist erst gesichert, wenn die Schuldatei gespeichert wurde.
+                Ohne gespeicherte Schuldatei kann die Rückgabe später nicht zugeordnet werden.
+                <div><button class="btn primary" @onclick="SaveSchoolAsync">Schuldatei jetzt speichern</button></div>
+            </div>
+        }
+
+        @* ---------- Rückgaben ---------- *@
+        <div class="card form">
+            <h2>Rückgaben einlesen</h2>
+            <p class="muted">Eine oder mehrere <code>.zantwort</code>-Dateien wählen. Kennwörter sind nicht nötig – sie stehen im jeweiligen Auftrag.</p>
+            <InputFile OnChange="LoadReturnsAsync" accept=".zantwort" multiple />
+            @foreach (var (name, message) in _loadErrors)
+            {
+                <p class="alert error"><strong>@name:</strong> @message</p>
+            }
+        </div>
+
+        @foreach (var item in _loaded.ToList())
+        {
+            <ReturnPreview School="f" Loaded="item.Loaded" FileName="@item.Name"
+                           OnApply="choices => ApplyReturn(item, choices)" OnDiscard="() => _loaded.Remove(item)" />
+        }
+
+        @* ---------- Neuer Auftrag ---------- *@
+        <div class="card">
+            <div class="card-head">
+                <h2>Neuer Auftrag</h2>
+                <button class="btn @(_newOpen ? "" : "primary")" @onclick="ToggleNew">@(_newOpen ? "Schließen" : "+ Auftrag")</button>
+            </div>
+
+            @if (_newOpen)
+            {
+                <div class="form">
+                    <div class="row">
+                        <label class="field grow">
+                            <span>Lehrkraft</span>
+                            <select @onchange="e => _teacherId = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null">
+                                <option value="" selected="@(_teacherId is null)">– bitte wählen –</option>
+                                @foreach (var t in f.Teachers.OrderBy(t => t.DisplayName))
+                                {
+                                    <option value="@t.Id" selected="@(t.Id == _teacherId)">@t.DisplayName</option>
+                                }
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span>Klasse</span>
+                            <select @onchange="e => SelectClass(e.Value?.ToString())">
+                                <option value="" selected="@(_class is null)">– bitte wählen –</option>
+                                @foreach (var c in f.Classes)
+                                {
+                                    <option value="@c.Name" selected="@(c.Name == _class)">@c.Name</option>
+                                }
+                            </select>
+                        </label>
+                    </div>
+
+                    @if (_class is not null)
+                    {
+                        var students = f.Students.Where(s => s.ClassName == _class).OrderBy(s => s.LastName).ThenBy(s => s.FirstName).ToList();
+                        <fieldset class="choose">
+                            <legend>Schüler (@_studentIds.Count von @students.Count)</legend>
+                            <div class="actions small-actions">
+                                <button class="btn" type="button" @onclick="() => SetStudents(students)">alle</button>
+                                <button class="btn" type="button" @onclick="() => SetStudents(students.Where(s => s.Track == StudentTrack.SE))">nur SE</button>
+                                <button class="btn" type="button" @onclick="() => SetStudents([])">keine</button>
+                            </div>
+                            <div class="check-grid">
+                                @foreach (var s in students)
+                                {
+                                    <label class="check">
+                                        <input type="checkbox" checked="@_studentIds.Contains(s.Id)" @onchange="e => Toggle(_studentIds, s.Id, e)" />
+                                        <span>@s.DisplayName @(s.Track != StudentTrack.Regular ? $"({Labels.Of(s.Track)})" : "")</span>
+                                    </label>
+                                }
+                            </div>
+                        </fieldset>
+
+                        var groups = SectionGroups(f);
+                        <fieldset class="choose">
+                            <legend>Bereiche</legend>
+                            @if (groups.Count == 0)
+                            {
+                                <p class="muted">Für diese Klasse und die gewählten Schüler gibt es keinen Katalog. <a href="verwaltung/kataloge">Kataloge anlegen</a></p>
+                            }
+                            @foreach (var g in groups)
+                            {
+                                var all = g.Sections.All(s => _patterns.Contains(s.Pattern));
+                                <div class="subject-group">
+                                    <label class="check subject">
+                                        <input type="checkbox" checked="@all" @onchange="e => ToggleSubject(g, e)" />
+                                        <strong>@g.Subject</strong>
+                                    </label>
+                                    <div class="check-grid">
+                                        @foreach (var s in g.Sections)
+                                        {
+                                            <label class="check">
+                                                <input type="checkbox" checked="@_patterns.Contains(s.Pattern)" @onchange="e => Toggle(_patterns, s.Pattern, e)" />
+                                                <span>@s.Title <span class="muted">· @s.KindLabel</span></span>
+                                            </label>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </fieldset>
+                    }
+
+                    <div class="row">
+                        <label class="field grow"><span>Bezeichnung</span><input @bind="_label" placeholder="@SuggestedLabel(f)" /></label>
+                        <label class="field"><span>Abgabe bis</span><input type="date" @bind="_due" /></label>
+                    </div>
+                    <div class="row">
+                        <label class="field grow">
+                            <span>Kennwort für die Lehrkraft (getrennt von der Datei weitergeben)</span>
+                            <input @bind="_password" autocomplete="off" spellcheck="false" class="mono" />
+                        </label>
+                        <button class="btn align-end" type="button" @onclick="() => _password = AssignmentFactory.GeneratePassword()">Neu erzeugen</button>
+                    </div>
+
+                    @foreach (var o in Overlaps(f))
+                    {
+                        <p class="alert warn">
+                            Überschneidung mit „@o.Other.Label“ (@o.Other.TeacherName): @o.Students Schüler, @o.Fields Felder.
+                            Wenn beide dieselben Felder ausfüllen, entstehen beim Zusammenführen Konflikte.
+                        </p>
+                    }
+
+                    <div class="actions">
+                        <button class="btn primary" @onclick="CreateAsync" disabled="@_busy">Auftrag erstellen und herunterladen</button>
+                    </div>
+                </div>
+            }
+
+            @if (_created is { } done)
+            {
+                <div class="alert success handover">
+                    <div><strong>@done.FileName</strong> wurde heruntergeladen.</div>
+                    <div>Kennwort für @done.Teacher: <code class="mono big">@done.Password</code></div>
+                    <div class="muted">Datei über LOGINEO senden, Kennwort auf anderem Weg (persönlich, Telefon). Das Kennwort steht auch später in der Auftragsliste.</div>
+                </div>
+            }
+        </div>
+
+        @* ---------- Liste ---------- *@
+        <div class="card">
+            <h2>Aufträge (@f.Assignments.Count)</h2>
+            @if (f.Assignments.Count == 0)
+            {
+                <p class="muted">Noch keine Aufträge.</p>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table class="list">
+                        <thead>
+                            <tr><th>Lehrkraft</th><th>Klasse</th><th>Bereich</th><th>Schüler</th><th>Abgabe bis</th><th>Rückgaben</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in f.Assignments.OrderBy(a => a.Revoked).ThenByDescending(a => a.IssuedUtc))
+                            {
+                                var last = a.Returns.LastOrDefault();
+                                var expired = a.ExpiresUtc < DateTimeOffset.UtcNow;
+                                <tr class="@(a.Revoked ? "row-muted" : "")">
+                                    <td>@a.TeacherName</td>
+                                    <td>@a.ClassName</td>
+                                    <td>@a.Label</td>
+                                    <td>@a.StudentIds.Count</td>
+                                    <td>
+                                        @a.ExpiresUtc.ToLocalTime().ToString("dd.MM.yyyy")
+                                        @if (expired && !a.Revoked) { <span class="badge warn">abgelaufen</span> }
+                                    </td>
+                                    <td>
+                                        @if (last is null) { <span class="muted">–</span> }
+                                        else { <span>@a.Returns.Count× · zuletzt @last.ImportedUtc.ToLocalTime().ToString("dd.MM. HH:mm")</span> }
+                                        @if (a.Revoked) { <span class="badge">abgeschlossen</span> }
+                                    </td>
+                                    <td class="row-actions">
+                                        @if (_showPassword == a.AssignmentId)
+                                        {
+                                            <code class="mono">@a.Password</code>
+                                        }
+                                        <button class="btn" @onclick="() => _showPassword = _showPassword == a.AssignmentId ? null : a.AssignmentId">Kennwort</button>
+                                        @if (!a.Revoked)
+                                        {
+                                            <button class="btn" @onclick="() => DownloadAgainAsync(a)">Datei</button>
+                                            <button class="btn" @onclick="() => Extend(a)">+7 Tage</button>
+                                            <button class="btn" @onclick="() => SetClosed(a, true)">Abschließen</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn" @onclick="() => SetClosed(a, false)">Wieder öffnen</button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+</AdminFrame>
+
+@code {
+    private sealed record SectionChoice(string Pattern, string Title, string KindLabel);
+    private sealed record SubjectGroup(string Subject, List<SectionChoice> Sections);
+    private sealed record Created(string FileName, string Teacher, string Password);
+    private sealed record LoadedItem(string Name, LoadedResponse Loaded);
+
+    private bool _newOpen;
+    private Guid? _teacherId;
+    private string? _class;
+    private readonly HashSet<Guid> _studentIds = [];
+    private readonly HashSet<string> _patterns = [];
+    private string _label = "";
+    private DateOnly _due = DateOnly.FromDateTime(DateTime.Today.AddDays(14));
+    private string _password = AssignmentFactory.GeneratePassword();
+    private bool _busy;
+    private bool _mustSave;
+    private Created? _created;
+    private Guid? _showPassword;
+
+    private readonly List<LoadedItem> _loaded = [];
+    private readonly List<(string Name, string Message)> _loadErrors = [];
+
+    private void ToggleNew()
+    {
+        ClearMessages();
+        _newOpen = !_newOpen;
+        _created = null;
+    }
+
+    private void SelectClass(string? name)
+    {
+        _class = string.IsNullOrEmpty(name) ? null : name;
+        _patterns.Clear();
+        _studentIds.Clear();
+        if (_class is not null && File is not null)
+            foreach (var s in File.Students.Where(s => s.ClassName == _class)) _studentIds.Add(s.Id);
+    }
+
+    private void SetStudents(IEnumerable<Student> students)
+    {
+        _studentIds.Clear();
+        foreach (var s in students) _studentIds.Add(s.Id);
+    }
+
+    private static void Toggle<T>(HashSet<T> set, T value, ChangeEventArgs e)
+    {
+        if (e.Value is true) set.Add(value); else set.Remove(value);
+    }
+
+    private void ToggleSubject(SubjectGroup g, ChangeEventArgs e)
+    {
+        foreach (var s in g.Sections)
+            if (e.Value is true) _patterns.Add(s.Pattern); else _patterns.Remove(s.Pattern);
+    }
+
+    /// <summary>Bereiche aller Kataloge, die für die gewählten Schüler gelten, nach Fach gruppiert.</summary>
+    private List<SubjectGroup> SectionGroups(SchoolFile f)
+    {
+        var grade = f.Classes.FirstOrDefault(c => c.Name == _class)?.Grade ?? 0;
+        var tracks = f.Students.Where(s => _studentIds.Contains(s.Id)).Select(s => s.Track).Distinct().ToHashSet();
+        if (tracks.Count == 0) tracks = f.Students.Where(s => s.ClassName == _class).Select(s => s.Track).Distinct().ToHashSet();
+        return f.Catalogs
+            .Where(c => c.Grade == grade && tracks.Contains(c.Track))
+            .SelectMany(c => c.Sections)
+            .GroupBy(s => (s.Kind, s.Key))
+            .Select(g => g.First())
+            .GroupBy(s => string.IsNullOrWhiteSpace(s.Subject) ? "Allgemein" : s.Subject)
+            .Select(g => new SubjectGroup(g.Key, g.Select(s => new SectionChoice(Pattern(s), s.Title, KindLabel(s.Kind))).ToList()))
+            .ToList();
+    }
+
+    private static string Pattern(CatalogSection s) =>
+        s.Kind == FieldKind.Rating ? $"{new FieldKey(FieldKind.Rating, s.Key)}.*" : new FieldKey(s.Kind, s.Key).ToString();
+
+    private static string KindLabel(FieldKind k) => k switch
+    {
+        FieldKind.Rating => "Ankreuzen", FieldKind.Grade => "Note", FieldKind.Text => "Text", _ => "Auswahl",
+    };
+
+    private string SuggestedLabel(SchoolFile f)
+    {
+        if (_class is null) return "z. B. Sport";
+        var groups = SectionGroups(f);
+        var chosen = groups.Where(g => g.Sections.Any(s => _patterns.Contains(s.Pattern))).Select(g => g.Subject).ToList();
+        return chosen.Count switch
+        {
+            0 => "z. B. Sport",
+            _ when chosen.Count == groups.Count => "Klassenlehrkraft",
+            _ => string.Join(", ", chosen),
+        };
+    }
+
+    private IEnumerable<AssignmentOverlap> Overlaps(SchoolFile f) =>
+        _class is null || _patterns.Count == 0 || _studentIds.Count == 0
+            ? []
+            : AssignmentFactory.FindOverlaps(f, _class, _studentIds, _patterns);
+
+    private async Task CreateAsync()
+    {
+        if (File is not { } f) return;
+        ClearMessages();
+        _busy = true;
+        try
+        {
+            AssignmentFile? file = null;
+            var label = string.IsNullOrWhiteSpace(_label) ? SuggestedLabel(f) : _label;
+            var due = new DateTimeOffset(_due.ToDateTime(new TimeOnly(23, 59)));
+            var ok = Change(x => file = AssignmentFactory.Create(x,
+                new AssignmentRequest(_teacherId ?? Guid.Empty, _class ?? "", label, _patterns.ToList(), due, _studentIds.ToList(), _password.Trim()),
+                DateTimeOffset.UtcNow));
+            if (!ok || file is null) return;
+
+            var bytes = await Codec.SealAsync(file, EnvelopeKind.Assignment, _password.Trim());
+            var name = AssignmentFactory.FileName(file);
+            await Files.DownloadAsync(bytes, name);
+            _created = new Created(name, file.TeacherName, _password.Trim());
+            _mustSave = true;
+            _newOpen = false;
+            _label = "";
+            _patterns.Clear();
+            _password = AssignmentFactory.GeneratePassword();
+        }
+        catch (ExchangeSecurityException ex) { Error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task DownloadAgainAsync(IssuedAssignment a)
+    {
+        if (File is not { } f) return;
+        ClearMessages();
+        var file = AssignmentFactory.Build(f, a);
+        var bytes = await Codec.SealAsync(file, EnvelopeKind.Assignment, a.Password);
+        await Files.DownloadAsync(bytes, AssignmentFactory.FileName(file));
+        Success = "Auftragsdatei erneut erzeugt (mit bereits übernommenen Werten). Kennwort unverändert.";
+    }
+
+    private void Extend(IssuedAssignment a)
+    {
+        var until = (a.ExpiresUtc < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow : a.ExpiresUtc).AddDays(7);
+        Change(f =>
+        {
+            a.ExpiresUtc = until;
+            f.Audit.Add(new AuditEntry(DateTimeOffset.UtcNow, "Auftrag verlängert", $"{a.TeacherName} · {a.ClassName} · {a.Label} → {until.ToLocalTime():dd.MM.yyyy}"));
+        }, $"Abgabe verlängert bis {until.ToLocalTime():dd.MM.yyyy}. Die Lehrkraft muss keine neue Datei erhalten.");
+    }
+
+    private void SetClosed(IssuedAssignment a, bool closed) =>
+        Change(f =>
+        {
+            a.Revoked = closed;
+            f.Audit.Add(new AuditEntry(DateTimeOffset.UtcNow, closed ? "Auftrag abgeschlossen" : "Auftrag wieder geöffnet", $"{a.TeacherName} · {a.ClassName} · {a.Label}"));
+        }, closed ? "Auftrag abgeschlossen. Weitere Rückgaben werden nicht mehr angenommen." : "Auftrag wieder geöffnet.");
+
+    private async Task LoadReturnsAsync(InputFileChangeEventArgs e)
+    {
+        if (File is not { } f) return;
+        ClearMessages();
+        _loadErrors.Clear();
+        foreach (var file in e.GetMultipleFiles(50))
+        {
+            try
+            {
+                var bytes = await Files.ReadAsync(file);
+                var loaded = await ResponseReader.LoadAsync(Codec, f, bytes, DateTimeOffset.UtcNow);
+                if (_loaded.Any(x => x.Loaded.Response.ResponseId == loaded.Response.ResponseId)) continue;
+                _loaded.Add(new LoadedItem(file.Name, loaded));
+            }
+            catch (ExchangeSecurityException ex) { _loadErrors.Add((file.Name, ex.Message)); }
+        }
+    }
+
+    private void ApplyReturn(LoadedItem item, IReadOnlyDictionary<(Guid, string), ConflictChoice> choices)
+    {
+        MergeResult? result = null;
+        try
+        {
+            if (Change(f => result = MergeEngine.Commit(f, item.Loaded.Preview, choices, DateTimeOffset.UtcNow)) && result is not null)
+            {
+                _loaded.Remove(item);
+                _mustSave = true;
+                Success = $"Rückgabe von {item.Loaded.Assignment.TeacherName} übernommen: {result.Applied} Werte" +
+                          (result.ConflictsTakenIncoming + result.ConflictsKeptSchool > 0
+                              ? $", Konflikte: {result.ConflictsTakenIncoming} Lehrkraft / {result.ConflictsKeptSchool} Verwaltung." : ".");
+            }
+        }
+        catch (ExchangeSecurityException ex) { Error = ex.Message; }
+    }
+
+    private async Task SaveSchoolAsync()
+    {
+        var (bytes, name) = await Session.SaveAsync();
+        await Files.DownloadAsync(bytes, name);
+        _mustSave = false;
+        Success = $"Gespeichert als {name}.";
+    }
+}
