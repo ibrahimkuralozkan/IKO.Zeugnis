@@ -7,31 +7,6 @@
 <AdminFrame Error="@Error" Success="@Success">
     @if (File is { } f)
     {
-        <div class="card">
-            <h3>Word-Vorlagen</h3>
-            <p class="muted">
-                Eine .docx-Vorlage je Jahrgangsstufe und Bildungsgang. Felder sind Inhaltssteuerelemente mit einem Tag:
-                <code>student.name</code>, <code>class.name</code>, <code>term</code>, <code>g:Sport</code>, <code>t:Allgemein</code>.
-                Ein Ankreuzfeld bekommt Tag und Wert, z. B. <code>r:Deutsch.Lesen.03#2</code> (angekreuzt bei Wert 2).
-            </p>
-            @if (TemplateSlots(f).Any())
-            {
-                @foreach (var slot in TemplateSlots(f))
-                {
-                    var current = WordTemplates.For(f, slot.Grade, slot.Track);
-                    <div class="template-row" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0" @key="slot">
-                        <strong>Klasse @slot.Grade, @slot.Track</strong>
-                        <span class="muted">@(current?.FileName ?? "keine Vorlage")</span>
-                        <InputFile OnChange="@(e => UploadTemplateAsync(e, slot.Grade, slot.Track))" accept=".docx" />
-                    </div>
-                }
-            }
-            else
-            {
-                <p class="muted">Bitte zuerst <a href="verwaltung/kataloge">Kataloge</a> anlegen.</p>
-            }
-        </div>
-
         @if (f.Classes.Count == 0)
         {
             <div class="card"><p class="muted">Bitte zuerst <a href="verwaltung/klassen">Klassen</a> und <a href="verwaltung/schueler">Schüler</a> anlegen.</p></div>
@@ -71,6 +46,33 @@
                 </div>
             }
         }
+
+        var slots = TemplateSlots(f).ToList();
+        var uploaded = slots.Count(slot => WordTemplates.For(f, slot.Grade, slot.Track) is not null);
+        <details class="card">
+            <summary>Word-Vorlagen verwalten <span class="muted">· @uploaded/@slots.Count vorhanden</span></summary>
+            <p class="muted">
+                Eine .docx-Vorlage je Jahrgangsstufe und Bildungsgang. Felder sind Inhaltssteuerelemente mit einem Tag:
+                <code>student.name</code>, <code>class.name</code>, <code>term</code>, <code>g:Sport</code>, <code>t:Allgemein</code>.
+                Ein Ankreuzfeld bekommt Tag und Wert, z. B. <code>r:Deutsch.Lesen.03#2</code> (angekreuzt bei Wert 2).
+            </p>
+            @if (slots.Count > 0)
+            {
+                @foreach (var slot in slots)
+                {
+                    var current = WordTemplates.For(f, slot.Grade, slot.Track);
+                    <div class="template-row" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0" @key="slot">
+                        <strong>Klasse @slot.Grade, @slot.Track</strong>
+                        <span class="muted">@(current?.FileName ?? "keine Vorlage")</span>
+                        <InputFile OnChange="@(e => UploadTemplateAsync(e, slot.Grade, slot.Track))" accept=".docx" />
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="muted">Bitte zuerst <a href="verwaltung/kataloge">Kataloge</a> anlegen.</p>
+            }
+        </details>
     }
 </AdminFrame>
 
