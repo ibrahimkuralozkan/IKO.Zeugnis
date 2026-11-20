@@ -15,9 +15,38 @@ public sealed record AssignmentRequest(
 /// <summary>Überschneidung mit einem anderen offenen Auftrag (gleiche Schüler, gleiche Felder).</summary>
 public sealed record AssignmentOverlap(IssuedAssignment Other, int Students, int Fields);
 
+/// <summary>Ein einzeln auswählbares Katalogelement in der vom Katalog festgelegten Reihenfolge.</summary>
+public sealed record AssignmentElement(string Pattern, string Title, string Subject, FieldKind Kind);
+
 /// <summary>Erzeugt Arbeitsaufträge aus der Schuldatei (Verwaltungsseite).</summary>
 public static class AssignmentFactory
 {
+    /// <summary>
+    /// Liefert die Elemente der für die Schüler geltenden Kataloge ohne Gruppierung nach Fach oder Feldart.
+    /// Die Reihenfolge entspricht exakt der Reihenfolge der Katalogelemente; gleiche Elemente mehrerer
+    /// Bildungsgänge werden an ihrer ersten Position nur einmal angezeigt.
+    /// </summary>
+    public static List<AssignmentElement> ElementsFor(SchoolFile school, IEnumerable<Student> students)
+    {
+        var gradeOf = school.Classes.ToDictionary(c => c.Name, c => c.Grade);
+        var needed = students.Select(s => (Grade: gradeOf.GetValueOrDefault(s.ClassName), s.Track)).ToHashSet();
+        var seen = new HashSet<(FieldKind Kind, string Key)>();
+        var result = new List<AssignmentElement>();
+        foreach (var catalog in school.Catalogs.Where(c => needed.Contains((c.Grade, c.Track))))
+        foreach (var section in catalog.Sections)
+        {
+            if (!seen.Add((section.Kind, section.Key))) continue;
+            result.Add(new AssignmentElement(
+                section.Kind == FieldKind.Rating
+                    ? $"{new FieldKey(FieldKind.Rating, section.Key)}.*"
+                    : new FieldKey(section.Kind, section.Key).ToString(),
+                section.Title,
+                string.IsNullOrWhiteSpace(section.Subject) ? "Allgemein" : section.Subject,
+                section.Kind));
+        }
+        return result;
+    }
+
     /// <summary>Legt den Auftrag in der Schuldatei an und liefert die Datei für die Lehrkraft.</summary>
     public static AssignmentFile Create(SchoolFile school, AssignmentRequest request, DateTimeOffset now)
     {

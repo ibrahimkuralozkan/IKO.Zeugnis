@@ -59,7 +59,7 @@
             <div class="card">
                 <h2>Noch keine Kataloge</h2>
                 <p class="muted">
-                    Ein Katalog legt fest, was im Zeugnis bewertet wird: Bereiche mit Ankreuzkriterien, Noten, Freitexte und Auswahlfelder.
+                    Ein Katalog legt mit frei sortierbaren Elementen fest, was im Zeugnis bewertet wird: Ankreuzkriterien, Noten, Freitexte und Auswahlfelder.
                     Legen Sie einen Katalog an oder importieren Sie eine Katalogdatei (<code>.zkatalog</code>).
                 </p>
             </div>
@@ -113,7 +113,7 @@
             </div>
 
             <form class="card form" @onsubmit="AddSection" @onsubmit:preventDefault>
-                <h2>Bereich hinzufügen</h2>
+                <h2>Element hinzufügen</h2>
                 <div class="row">
                     <label class="field grow"><span>Titel im Zeugnis</span><input @bind="_secTitle" placeholder="z. B. Deutsch – Lesen" /></label>
                     <label class="field"><span>Fach (für Fachlehrkräfte)</span>
@@ -130,11 +130,12 @@
                     </label>
                     <button class="btn primary align-end" type="submit">Hinzufügen</button>
                 </div>
+                <p class="muted">Jede Note, Ankreuzgruppe, Bemerkung, Auswahl, Zahl und jedes Datum ist ein eigenes Element. Die Reihenfolge lässt sich anschließend frei mit ▲ und ▼ festlegen.</p>
             </form>
 
             @if (cat.Sections.Count == 0)
             {
-                <p class="muted">Dieser Katalog hat noch keine Bereiche.</p>
+                <p class="muted">Dieser Katalog hat noch keine Elemente.</p>
             }
 
             @for (var si = 0; si < cat.Sections.Count; si++)
@@ -149,6 +150,7 @@
                             <button class="icon-btn" disabled="@last" @onclick="() => Change(x => CatalogEditor.MoveSection(x, cat.Id, s.Kind, s.Key, 1, DateTimeOffset.UtcNow))" aria-label="nach unten">▼</button>
                         </div>
                         <div class="section-fields">
+                            <span class="muted small">Element @(si + 1)</span>
                             <input class="title-input" value="@s.Title" aria-label="Titel"
                                    @onchange="e => Change(x => CatalogEditor.UpdateSection(x, cat.Id, s.Kind, s.Key, e.Value?.ToString() ?? string.Empty, s.Subject, DateTimeOffset.UtcNow))" />
                             <div class="meta">

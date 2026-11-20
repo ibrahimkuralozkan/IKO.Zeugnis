@@ -154,6 +154,30 @@ public class AssignmentWorkflowTests
     }
 
     [Fact]
+    public void CatalogElements_StayIndependentAndKeepUserOrder()
+    {
+        var school = TestData.School();
+        var catalog = school.Catalogs[0];
+        catalog.Sections =
+        [
+            new CatalogSection { Key = "Deutsch", Title = "Deutsch Gesamtnote", Subject = "Deutsch", Kind = FieldKind.Grade },
+            new CatalogSection { Key = "Deutsch-Rechtschreiben", Title = "Rechtschreiben", Subject = "Deutsch", Kind = FieldKind.Rating },
+            new CatalogSection { Key = "Deutsch-Lesen", Title = "Lesen", Subject = "Deutsch", Kind = FieldKind.Rating },
+            new CatalogSection { Key = "Deutsch", Title = "Deutsch Bemerkungen", Subject = "Deutsch", Kind = FieldKind.Text },
+            new CatalogSection { Key = "Mathematik", Title = "Mathematik Gesamtnote", Subject = "Mathematik", Kind = FieldKind.Grade },
+        ];
+
+        var elements = AssignmentFactory.ElementsFor(school, school.Students.Where(s => s.Track == StudentTrack.Regular));
+
+        Assert.Equal(
+            ["g:Deutsch", "r:Deutsch-Rechtschreiben.*", "r:Deutsch-Lesen.*", "t:Deutsch", "g:Mathematik"],
+            elements.Select(e => e.Pattern));
+        Assert.Equal([FieldKind.Grade, FieldKind.Rating, FieldKind.Rating, FieldKind.Text, FieldKind.Grade],
+            elements.Select(e => e.Kind));
+        Assert.All(elements.Take(4), e => Assert.Equal("Deutsch", e.Subject));
+    }
+
+    [Fact]
     public void FieldLabels_AreReadable()
     {
         var school = TestData.School();

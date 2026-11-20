@@ -375,6 +375,10 @@ fieldset.choose legend { padding: 0 .4rem; font-weight: 600; color: var(--muted)
 .subject-group { padding: .5rem 0; border-top: 1px solid var(--border); }
 .subject-group:first-of-type { border-top: none; }
 .check.subject { font-size: 1rem; }
+.element-list { display: flex; flex-direction: column; margin-top: .5rem; }
+.catalog-element { min-height: 42px; border-top: 1px solid var(--border); align-items: center; }
+.catalog-element:first-child { border-top: none; }
+.element-position { width: 2rem; flex: 0 0 2rem; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
 .small-actions .btn { min-height: 36px; padding: .25rem .8rem; font-size: .9rem; }
 .mono { font-family: ui-monospace, "SF Mono", Consolas, monospace; letter-spacing: .03em; }
 code.big { font-size: 1.15rem; padding: .15rem .5rem; }

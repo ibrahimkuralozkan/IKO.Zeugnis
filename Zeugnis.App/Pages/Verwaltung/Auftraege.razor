@@ -170,30 +170,29 @@
                             }
                         </fieldset>
 
-                        var groups = SectionGroups(f);
+                        var elements = CatalogElements(f);
                         <fieldset class="choose">
-                            <legend>Bereiche</legend>
-                            @if (groups.Count == 0)
+                            <legend>Elemente</legend>
+                            @if (elements.Count == 0)
                             {
                                 <p class="muted">Für diese Klassen und die gewählten Schüler gibt es keinen Katalog. <a href="verwaltung/kataloge">Kataloge anlegen</a></p>
                             }
-                            @foreach (var g in groups)
+                            else
                             {
-                                var all = g.Sections.All(s => _patterns.Contains(s.Pattern));
-                                <div class="subject-group">
-                                    <label class="check subject">
-                                        <input type="checkbox" checked="@all" @onchange="e => ToggleSubject(g, e)" />
-                                        <strong>@g.Subject</strong>
-                                    </label>
-                                    <div class="check-grid">
-                                        @foreach (var s in g.Sections)
-                                        {
-                                            <label class="check">
-                                                <input type="checkbox" checked="@_patterns.Contains(s.Pattern)" @onchange="e => Toggle(_patterns, s.Pattern, e)" />
-                                                <span>@s.Title <span class="muted">· @s.KindLabel</span></span>
-                                            </label>
-                                        }
-                                    </div>
+                                <div class="actions small-actions">
+                                    <button class="btn" type="button" @onclick="() => SetPatterns(elements.Select(x => x.Pattern))">alle</button>
+                                    <button class="btn" type="button" @onclick="() => SetPatterns([])">keine</button>
+                                </div>
+                                <div class="element-list">
+                                    @for (var ei = 0; ei < elements.Count; ei++)
+                                    {
+                                        var element = elements[ei];
+                                        <label class="check catalog-element">
+                                            <input type="checkbox" checked="@_patterns.Contains(element.Pattern)" @onchange="e => Toggle(_patterns, element.Pattern, e)" />
+                                            <span class="element-position">@(ei + 1)</span>
+                                            <span><strong>@element.Subject</strong> · @element.Title <span class="muted">· @KindLabel(element.Kind)</span></span>
+                                        </label>
+                                    }
                                 </div>
                             }
                         </fieldset>
@@ -310,8 +309,6 @@
 </AdminFrame>
 
 @code {
-    private sealed record SectionChoice(string Pattern, string Title, string KindLabel);
-    private sealed record SubjectGroup(string Subject, List<SectionChoice> Sections);
     private sealed record Created(string FileName, string SchoolFileName, string Teacher, string Password, bool KnownPassword);
     private sealed record LoadedItem(string Name, LoadedResponse Loaded);
 
@@ -367,31 +364,19 @@
         if (e.Value is true) set.Add(value); else set.Remove(value);
     }
 
-    private void ToggleSubject(SubjectGroup g, ChangeEventArgs e)
+    private void SetPatterns(IEnumerable<string> patterns)
     {
-        foreach (var s in g.Sections)
-            if (e.Value is true) _patterns.Add(s.Pattern); else _patterns.Remove(s.Pattern);
+        _patterns.Clear();
+        foreach (var pattern in patterns) _patterns.Add(pattern);
     }
 
-    /// <summary>Bereiche aller Kataloge, die für die gewählten Schüler gelten, nach Fach gruppiert.</summary>
-    private List<SubjectGroup> SectionGroups(SchoolFile f)
+    /// <summary>Elemente aller passenden Kataloge in der vom Benutzer festgelegten Katalogreihenfolge.</summary>
+    private List<AssignmentElement> CatalogElements(SchoolFile f)
     {
-        var gradeOf = f.Classes.ToDictionary(c => c.Name, c => c.Grade);
         var chosen = f.Students.Where(s => _studentIds.Contains(s.Id)).ToList();
         if (chosen.Count == 0) chosen = f.Students.Where(s => _classes.Contains(s.ClassName)).ToList();
-        var needed = chosen.Select(s => (gradeOf.GetValueOrDefault(s.ClassName), s.Track)).ToHashSet();
-        return f.Catalogs
-            .Where(c => needed.Contains((c.Grade, c.Track)))
-            .SelectMany(c => c.Sections)
-            .GroupBy(s => (s.Kind, s.Key))
-            .Select(g => g.First())
-            .GroupBy(s => string.IsNullOrWhiteSpace(s.Subject) ? "Allgemein" : s.Subject)
-            .Select(g => new SubjectGroup(g.Key, g.Select(s => new SectionChoice(Pattern(s), s.Title, KindLabel(s.Kind))).ToList()))
-            .ToList();
+        return AssignmentFactory.ElementsFor(f, chosen);
     }
-
-    private static string Pattern(CatalogSection s) =>
-        s.Kind == FieldKind.Rating ? $"{new FieldKey(FieldKind.Rating, s.Key)}.*" : new FieldKey(s.Kind, s.Key).ToString();
 
     private static string KindLabel(FieldKind k) => k switch
     {
@@ -401,12 +386,12 @@
     private string SuggestedLabel(SchoolFile f)
     {
         if (_classes.Count == 0) return "z. B. Sport";
-        var groups = SectionGroups(f);
-        var chosen = groups.Where(g => g.Sections.Any(s => _patterns.Contains(s.Pattern))).Select(g => g.Subject).ToList();
+        var elements = CatalogElements(f);
+        var chosen = elements.Where(e => _patterns.Contains(e.Pattern)).Select(e => e.Subject).Distinct().ToList();
         return chosen.Count switch
         {
             0 => "z. B. Sport",
-            _ when chosen.Count == groups.Count => "Klassenlehrkraft",
+            _ when elements.Count > 0 && elements.All(e => _patterns.Contains(e.Pattern)) => "Klassenlehrkraft",
             _ => string.Join(", ", chosen),
         };
     }
