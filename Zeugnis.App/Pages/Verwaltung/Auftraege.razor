@@ -47,6 +47,51 @@
             </div>
         }
 
+        @* ---------- Kontrolle durch Klassenlehrkraft ---------- *@
+        @if (f.Classes.Count > 0)
+        {
+            var allStatus = AssignmentStatus.All(f, DateTimeOffset.UtcNow);
+            <div class="card">
+                <h2>Kontrolle durch Klassenlehrkraft</h2>
+                <p class="muted">
+                    Die Klassenlehrkraft unterschreibt das Zeugnis. Mit dem Kontrollauftrag erhält sie alle Schüler und alle Felder
+                    ihrer Klasse mit dem aktuellen Stand – auch die Werte der Fachlehrkräfte – und kann alles prüfen und korrigieren.
+                    Am besten erst, wenn die Fachlehrkräfte abgegeben haben. Korrekturen werden beim Einlesen eigens angezeigt.
+                </p>
+                <div class="table-wrap">
+                    <table class="list">
+                        <thead><tr><th>Klasse</th><th>Klassenlehrkraft</th><th>Fachaufträge</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var c in f.Classes)
+                            {
+                                var classTeacher = f.Teachers.FirstOrDefault(t => t.Id == c.ClassTeacherId);
+                                var tasks = allStatus.Where(p => !p.Assignment.IsReview && p.State != ReturnState.Closed && p.Assignment.Classes().Contains(c.Name)).ToList();
+                                var open = tasks.Count(p => p.State != ReturnState.Complete);
+                                var review = f.Assignments.FirstOrDefault(a => a.IsReview && !a.Revoked && a.Classes().Contains(c.Name));
+                                <tr>
+                                    <td><strong>@c.Name</strong></td>
+                                    <td>@(classTeacher?.DisplayName ?? "– unter „Klassen“ festlegen")</td>
+                                    <td class="@(open > 0 ? "warn-text" : "")">
+                                        @(tasks.Count == 0 ? "–" : open == 0 ? "alle vollständig" : $"{open} von {tasks.Count} noch offen")
+                                    </td>
+                                    <td class="row-actions">
+                                        @if (review is not null)
+                                        {
+                                            <span class="badge">Kontrolle läuft</span>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn" disabled="@(classTeacher is null || _busy)" @onclick="() => CreateReviewAsync(c.Name)">Kontrollauftrag erstellen</button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
         @* ---------- Rückgaben ---------- *@
         <div class="card form">
             <h2>Rückgaben einlesen</h2>
@@ -221,7 +266,7 @@
                                 <tr class="@(a.Revoked ? "row-muted" : "")">
                                     <td>@a.TeacherName</td>
                                     <td>@a.ClassName</td>
-                                    <td>@a.Label</td>
+                                    <td>@a.Label @if (a.IsReview) { <span class="badge">Kontrolle</span> }</td>
                                     <td>@a.StudentIds.Count</td>
                                     <td>
                                         @a.ExpiresUtc.ToLocalTime().ToString("dd.MM.yyyy")
@@ -385,19 +430,41 @@
                 DateTimeOffset.UtcNow));
             if (!ok || file is null) return;
 
-            var password = f.Assignments.Single(a => a.AssignmentId == file.AssignmentId).Password;
-            // „Bekannt“, wenn die Lehrkraft schon einen Auftrag mit demselben Kennwort hat.
-            var known = f.Assignments.Any(a => a.AssignmentId != file.AssignmentId && a.TeacherId == file.TeacherId && a.Password == password);
-            var bytes = await Codec.SealAsync(file, EnvelopeKind.Assignment, password);
-            var name = AssignmentFactory.FileName(file);
-            await Files.DownloadAsync(bytes, name);
-            _created = new Created(name, file.TeacherName, password, known);
-            _mustSave = true;
+            await IssueAsync(f, file);
             _newOpen = false;
             _label = "";
             _patterns.Clear();
             _classes.Clear();
             _studentIds.Clear();
+        }
+        catch (ExchangeSecurityException ex) { Error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    /// <summary>Verschlüsselt die neue Auftragsdatei mit dem Kennwort der Lehrkraft und lädt sie herunter.</summary>
+    private async Task IssueAsync(SchoolFile f, AssignmentFile file)
+    {
+        var password = f.Assignments.Single(a => a.AssignmentId == file.AssignmentId).Password;
+        // „Bekannt“, wenn die Lehrkraft schon einen Auftrag mit demselben Kennwort hat.
+        var known = f.Assignments.Any(a => a.AssignmentId != file.AssignmentId && a.TeacherId == file.TeacherId && a.Password == password);
+        var bytes = await Codec.SealAsync(file, EnvelopeKind.Assignment, password);
+        var name = AssignmentFactory.FileName(file);
+        await Files.DownloadAsync(bytes, name);
+        _created = new Created(name, file.TeacherName, password, known);
+        _mustSave = true;
+    }
+
+    private async Task CreateReviewAsync(string className)
+    {
+        if (File is not { } f) return;
+        ClearMessages();
+        _busy = true;
+        try
+        {
+            AssignmentFile? file = null;
+            var due = new DateTimeOffset(DateTime.Today.AddDays(7).AddHours(23).AddMinutes(59));
+            if (Change(x => file = AssignmentFactory.CreateReview(x, className, due, DateTimeOffset.UtcNow)) && file is not null)
+                await IssueAsync(f, file);
         }
         catch (ExchangeSecurityException ex) { Error = ex.Message; }
         finally { _busy = false; }

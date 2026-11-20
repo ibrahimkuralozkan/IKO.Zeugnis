@@ -20,7 +20,9 @@ public sealed record MergeItem(
     string? BaselineValue,
     string? SchoolValue,
     string IncomingValue,
-    string? SchoolChangedBy);
+    string? SchoolChangedBy,
+    /// <summary>Wert stammte von einer anderen Person und wird von dieser Lehrkraft geändert (z. B. Kontrolle der Klassenlehrkraft).</summary>
+    string? CorrectedFrom = null);
 
 /// <summary>Vorschau einer Rückgabe. Es wird nichts geschrieben, bis <see cref="MergeEngine.Commit"/> aufgerufen wird.</summary>
 public sealed class MergePreview
@@ -32,6 +34,8 @@ public sealed class MergePreview
     public int UnchangedCount { get; set; }
 
     public IEnumerable<MergeItem> Applies => Items.Where(i => i.Outcome == MergeOutcome.Apply);
+    /// <summary>Übernahmen, die einen Wert einer anderen Person ändern – werden in der Vorschau eigens gezeigt.</summary>
+    public IEnumerable<MergeItem> Corrections => Applies.Where(i => i.CorrectedFrom is not null);
     public IEnumerable<MergeItem> Conflicts => Items.Where(i => i.Outcome == MergeOutcome.Conflict);
 }
 
@@ -98,9 +102,12 @@ public static class MergeEngine
                     continue;
                 }
                 var schoolChanged = (schoolValue?.Revision ?? 0) != (baseValue?.Revision ?? 0);
+                var correctedFrom = schoolValue is { Value.Length: > 0 } && schoolValue.ChangedBy != assignment.TeacherName
+                    ? schoolValue.ChangedBy : null;
                 preview.Items.Add(new MergeItem(studentId, name, key,
                     schoolChanged ? MergeOutcome.Conflict : MergeOutcome.Apply,
-                    baseValue?.Value, schoolValue?.Value, incoming, schoolChanged ? schoolValue?.ChangedBy : null));
+                    baseValue?.Value, schoolValue?.Value, incoming, schoolChanged ? schoolValue?.ChangedBy : null,
+                    schoolChanged ? null : correctedFrom));
             }
         }
         return preview;

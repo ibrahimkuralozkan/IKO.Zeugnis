@@ -79,6 +79,24 @@ public static class AssignmentFactory
         return Build(school, issued);
     }
 
+    public const string ReviewLabel = "Kontrolle Klassenlehrkraft";
+    /// <summary>Alle Feldarten – die Klassenlehrkraft sieht und korrigiert das ganze Zeugnis.</summary>
+    public static readonly string[] AllFields = ["r:*", "g:*", "t:*", "s:*", "n:*", "d:*"];
+
+    /// <summary>
+    /// Kontrollauftrag: alle Schüler und alle Felder der Klasse an die Klassenlehrkraft, mit dem aktuellen Stand
+    /// (also auch den bereits übernommenen Werten der Fachlehrkräfte). Sie unterschreibt das Zeugnis.
+    /// </summary>
+    public static AssignmentFile CreateReview(SchoolFile school, string className, DateTimeOffset expiresUtc, DateTimeOffset now)
+    {
+        var cls = MasterData.ClassByName(school, className);
+        if (cls.ClassTeacherId is not { } teacherId)
+            throw new MasterDataException($"Für Klasse {cls.Name} ist keine Klassenlehrkraft festgelegt (unter „Klassen“).");
+        var file = Create(school, new AssignmentRequest(teacherId, [cls.Name], ReviewLabel, AllFields, expiresUtc), now);
+        school.Assignments.Single(a => a.AssignmentId == file.AssignmentId).IsReview = true;
+        return file;
+    }
+
     /// <summary>
     /// Erzeugt die Auftragsdatei (erneut) aus dem gespeicherten Datensatz. Enthält den aktuellen Ausgangsstand,
     /// also auch bereits übernommene Werte dieser Lehrkraft.

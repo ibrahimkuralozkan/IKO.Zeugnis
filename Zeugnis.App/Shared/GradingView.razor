@@ -68,6 +68,10 @@ else
                     var scale = Context.CatalogFor(st)!.RatingScale;
                     <section class="card grade-section" @key="@($"{st.Id}|{g.Section.Kind}|{g.Section.Key}")">
                         <h3>@g.Section.Title</h3>
+                        @if (Context.AuthorsOf(st, g.Keys) is { Count: > 0 } authors)
+                        {
+                            <p class="muted small author">eingetragen von @string.Join(", ", authors)</p>
+                        }
                         @switch (g.Section.Kind)
                         {
                             case FieldKind.Rating:

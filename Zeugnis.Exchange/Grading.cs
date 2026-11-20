@@ -72,6 +72,18 @@ public sealed class GradingContext
 
     public string Get(Student s, string key) => ReportFor(s).Get(key) ?? "";
 
+    /// <summary>Wer die (nicht leeren) Werte dieser Felder eingetragen hat – ohne die bearbeitende Person selbst.</summary>
+    public IReadOnlyList<string> AuthorsOf(Student s, IEnumerable<string> keys)
+    {
+        var fields = ReportFor(s).Fields;
+        return keys
+            .Select(k => fields.TryGetValue(k, out var v) && v.Value.Length > 0 ? v.ChangedBy : null)
+            .OfType<string>()
+            .Where(by => by.Length > 0 && by != EditorName)
+            .Distinct()
+            .ToList();
+    }
+
     /// <summary>Setzt einen Wert. Liefert <c>false</c>, wenn das Feld nicht freigegeben ist oder sich nichts ändert.</summary>
     public bool Set(Student s, string key, string value, DateTimeOffset now)
     {

@@ -66,6 +66,8 @@ public sealed class IssuedAssignment
     public DateTimeOffset ExpiresUtc { get; set; }
     /// <summary>Abgeschlossen: keine weiteren Rückgaben; Stammdaten der Schüler wieder frei änderbar.</summary>
     public bool Revoked { get; set; }
+    /// <summary>Kontrollauftrag: Klassenlehrkraft prüft und korrigiert alle Felder ihrer Klasse.</summary>
+    public bool IsReview { get; set; }
     /// <summary>
     /// Kennwort des Auftrags. Liegt nur in der verschlüsselten Schuldatei, damit Rückgaben ohne Eingabe
     /// zugeordnet und geöffnet werden können und der Auftrag erneut erzeugt werden kann.

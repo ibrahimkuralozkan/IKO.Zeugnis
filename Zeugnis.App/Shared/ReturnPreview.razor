@@ -5,6 +5,8 @@
     var a = Loaded.Assignment;
     var conflicts = p.Conflicts.ToList();
     var applies = p.Applies.ToList();
+    var corrections = p.Corrections.ToList();
+    var plain = applies.Except(corrections).ToList();
 }
 <div class="card return-card">
     <div class="card-head">
@@ -18,7 +20,8 @@
     </div>
 
     <p>
-        <span class="badge ok">@applies.Count neue Werte</span>
+        <span class="badge ok">@plain.Count neue Werte</span>
+        @if (corrections.Count > 0) { <span class="badge warn">@corrections.Count Korrekturen</span> }
         <span class="badge @(conflicts.Count > 0 ? "warn" : "")">@conflicts.Count Konflikte</span>
         <span class="badge">@p.UnchangedCount unverändert</span>
     </p>
@@ -64,15 +67,37 @@
         </div>
     }
 
-    @if (applies.Count > 0)
+    @if (corrections.Count > 0)
+    {
+        <h3>Korrekturen an Werten anderer</h3>
+        <p class="muted small">@a.TeacherName ändert Werte, die eine andere Person eingetragen hat. Sie werden mit „Übernehmen“ geändert.</p>
+        <div class="table-wrap scroll">
+            <table class="list">
+                <thead><tr><th>Schüler</th><th>Feld</th><th>bisher</th><th>neu</th></tr></thead>
+                <tbody>
+                    @foreach (var i in corrections)
+                    {
+                        var (field, format) = FieldLabels.Describe(School, i.StudentId, i.FieldKey);
+                        <tr>
+                            <td>@i.StudentName</td><td>@field</td>
+                            <td class="muted">@format(i.SchoolValue) <span class="small">(@i.CorrectedFrom)</span></td>
+                            <td><strong>@format(i.IncomingValue)</strong></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (plain.Count > 0)
     {
         <details>
-            <summary>@applies.Count neue Werte anzeigen</summary>
+            <summary>@plain.Count neue Werte anzeigen</summary>
             <div class="table-wrap scroll">
                 <table class="list">
                     <thead><tr><th>Schüler</th><th>Feld</th><th>bisher</th><th>neu</th></tr></thead>
                     <tbody>
-                        @foreach (var i in applies)
+                        @foreach (var i in plain)
                         {
                             var (field, format) = FieldLabels.Describe(School, i.StudentId, i.FieldKey);
                             <tr><td>@i.StudentName</td><td>@field</td><td class="muted">@format(i.SchoolValue)</td><td>@format(i.IncomingValue)</td></tr>

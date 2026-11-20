@@ -70,6 +70,53 @@ public class MultiClassAndConditionTests
         Assert.False(f.TeacherPasswords.ContainsKey(other));
     }
 
+    /// <summary>Lehrkraft füllt ihren Auftrag aus, die Verwaltung übernimmt die Rückgabe.</summary>
+    private static MergePreview Return(SchoolFile f, AssignmentFile file, Action<GradingContext, Student> fill)
+    {
+        var ctx = GradingContext.ForAssignment(file);
+        fill(ctx, ctx.Students.Single(s => s.FirstName == "Anna"));
+        return MergeEngine.Preview(f, ResponseBuilder.Create(file, Now.AddHours(1)), Now.AddHours(1));
+    }
+
+    [Fact]
+    public void Kontrolle_der_Klassenlehrkraft_zeigt_Urheber_und_markiert_Korrekturen()
+    {
+        var f = TestData.School();                                   // Klassenlehrkraft 3a: Frau Beispiel
+        var sport = TestData.SportAssignment(f);                     // Herr Muster: r:Sport.*, g:Sport
+        MergeEngine.Commit(f, Return(f, sport, (c, anna) => c.Set(anna, "g:Sport", "2", Now)), new Dictionary<(Guid, string), ConflictChoice>(), Now);
+
+        var review = AssignmentFactory.CreateReview(f, "3a", Now.AddDays(7), Now);
+        Assert.True(f.Assignments.Single(a => a.AssignmentId == review.AssignmentId).IsReview);
+        Assert.Equal("Frau Beispiel", review.TeacherName);
+        Assert.Equal(f.Students.Count, review.Students.Count);
+
+        var ctx = GradingContext.ForAssignment(review);
+        var anna = ctx.Students.Single(s => s.FirstName == "Anna");
+        Assert.Contains("t:Allgemein", ctx.SectionsFor(anna).SelectMany(x => x.Keys));   // alle Felder
+        Assert.Equal("2", ctx.Get(anna, "g:Sport"));                                       // aktueller Stand
+        Assert.Equal(["Herr Muster"], ctx.AuthorsOf(anna, ["g:Sport", "t:Allgemein"]));
+
+        var preview = Return(f, review, (c, a) => { c.Set(a, "g:Sport", "1", Now); c.Set(a, "t:Allgemein", "Fleißig.", Now); });
+        Assert.Empty(preview.Conflicts);
+        var correction = Assert.Single(preview.Corrections);
+        Assert.Equal(("g:Sport", "Herr Muster", "2", "1"), (correction.FieldKey, correction.CorrectedFrom, correction.SchoolValue, correction.IncomingValue));
+        MergeEngine.Commit(f, preview, new Dictionary<(Guid, string), ConflictChoice>(), Now);
+        Assert.Equal("1", f.ReportFor(anna.Id).Get("g:Sport"));
+
+        // Späte Korrektur der Fachlehrkraft nach der Kontrolle → Konflikt, die Verwaltung entscheidet.
+        var late = Return(f, sport, (c, a) => c.Set(a, "g:Sport", "3", Now));
+        var conflict = Assert.Single(late.Conflicts);
+        Assert.Equal("Frau Beispiel", conflict.SchoolChangedBy);
+    }
+
+    [Fact]
+    public void Kontrollauftrag_braucht_eine_Klassenlehrkraft()
+    {
+        var f = TestData.School();
+        f.Classes[0].ClassTeacherId = null;
+        Assert.Throws<MasterDataException>(() => AssignmentFactory.CreateReview(f, "3a", Now.AddDays(7), Now));
+    }
+
     [Fact]
     public void Klasse_umbenennen_aendert_alle_Klassen_des_Auftrags()
     {
