@@ -158,7 +158,8 @@
                     var first = si == 0;
                     var last = si == cat.Sections.Count - 1;
                     <div class="catalog-drop-zone" data-drop-index="@si"></div>
-                    <section class="card section-card" data-catalog-kind="@s.Kind" data-catalog-key="@s.Key">
+                    <section class="card section-card" data-catalog-kind="@s.Kind" data-catalog-key="@s.Key"
+                             @key="@($"{cat.Id}|{s.Kind}|{s.Key}")">
                     <div class="section-head">
                         <span class="drag-handle" title="Element ziehen"
                               role="button" aria-label="Element per Drag-and-drop verschieben">⠿</span>
@@ -168,10 +169,11 @@
                         </div>
                         <div class="section-fields">
                             <label class="element-number">Element
-                                <select value="@si" @onchange="e => MoveToPosition(cat, s, e.Value?.ToString())" aria-label="Position von @s.Title">
+                                <select @key="@($"position|{cat.Id}|{s.Kind}|{s.Key}|{si}")"
+                                        value="@si" @onchange="e => MoveToPosition(cat, s, e.Value?.ToString())" aria-label="Position von @s.Title">
                                     @for (var position = 0; position < cat.Sections.Count; position++)
                                     {
-                                        <option value="@position">@(position + 1)</option>
+                                        <option value="@position" selected="@(position == si)">@(position + 1)</option>
                                     }
                                 </select>
                             </label>

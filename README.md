@@ -60,6 +60,7 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 - [x] **0.17.1:** Sürükleme fare/dokunma için pointer tabanlıdır; taşınan kart görünür bir hayalet olarak imleci takip eder, hedef aralık vurgulanır ve ekran kenarında otomatik kaydırma çalışır
 - [x] **0.17.2:** Element ekleme formundaki Titel, Fach, Art ve Hinzufügen alanları çakışmayan responsive grid düzenine geçirildi
 - [x] **0.18:** Yeni element oluştururken başlangıç/ara/son konumu seçilebilir; mevcut `Element N` numarası açılır listeden değiştirilerek kart doğrudan istenen sıraya taşınır
+- [x] **0.18.1:** Element taşındıktan sonra pozisyon select'leri kalıcı kart anahtarı ve yeni indeks anahtarıyla yeniden oluşturulur; ekranda aynı numaranın iki kez görünmesi engellenir
 - [ ] Sonra: iPad gerçek cihaz testi, Word tag yardım ekranı, yeni yarıyıl için okul dosyası devri
 
 ## Kurallar
