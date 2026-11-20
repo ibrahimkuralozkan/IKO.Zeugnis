@@ -63,10 +63,9 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 
 ## Yayın (GitHub Pages)
 
-Repo private olduğu için Pages yalnızca ücretli GitHub planında (Pro/Team) çalışır. O zamana kadar iş akışı yalnızca testleri ve yayın derlemesini çalıştırır. Yayını açmak için:
+**Canlı uygulama:** https://ibrahimkuralozkan.github.io/IKO.Zeugnis/
 
-1. Repo → Settings → Pages → Source: **GitHub Actions**
-2. Repo → Settings → Secrets and variables → Actions → Variables: `PAGES_ENABLED` = `true`
+Repo public; Pages kaynağı "GitHub Actions", repo değişkeni `PAGES_ENABLED=true`. `main` dalına her push testleri çalıştırır ve geçerse uygulamayı yayınlar. Yayınlanan uygulama boştur; okul verisi yalnızca şifreli dosyalarda durur. Yayını durdurmak için `PAGES_ENABLED` değişkenini silmek yeterli.
 
 ## İş akışı (kısa)
 

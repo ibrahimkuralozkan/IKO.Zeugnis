@@ -52,7 +52,8 @@ dotnet test IKO.Zeugnis.sln
 dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 ```
 
-Yayın: `.github/workflows/deploy-pwa.yml` – her `main` push'unda test + publish; Pages'e dağıtım yalnızca repo değişkeni `PAGES_ENABLED=true` iken. Yayın paketinde veri dosyası (`.zschule/.zauftrag/.zantwort/.docx`) çıkarsa iş akışı durur. Base path otomatik olarak repo adı (`/IKO.Zeugnis/`); service worker base'i kendi konumundan hesaplar.
+**Canlı:** https://ibrahimkuralozkan.github.io/IKO.Zeugnis/ (repo **public**, 20.11.2026'da kullanıcı onayıyla açıldı).
+Yayın: `.github/workflows/deploy-pwa.yml` – her `main` push'unda test + publish; Pages'e dağıtım repo değişkeni `PAGES_ENABLED=true` iken (ayarlı). Yayın paketinde veri dosyası (`.zschule/.zauftrag/.zantwort/.docx`) çıkarsa iş akışı durur. Base path otomatik olarak repo adı (`/IKO.Zeugnis/`); service worker base'i kendi konumundan hesaplar.
 
 ## Durum (20.11.2026)
 
@@ -64,7 +65,7 @@ Tamamlanan: v0.1 iskelet/şifreleme/birleştirme · v0.2 temel veriler + CSV · 
    - Verwaltung'da `.docx` şablon yükleme (katalog başına ya da sınıf düzeyi+eğitim yolu başına), okul dosyasında saklama (base64; boyut sınırı).
    - Şablonda içerik denetimleri (`w:tag`) ile doldurma. Önerilen tag şeması yeni uygulamanın kendi alan anahtarlarına dayansın (örn. `r:Deutsch-Lesen.01:1` işaret kutusu, `g:Sport`, `t:Bemerkungen`, `s:Versetzung`, ayrıca `student.name`, `student.birthdate`, `class.name`, `school.name`, `term`, `date` …). Kullanıcıya şablonda hangi tag'lerin kullanılabileceğini listeleyen bir yardım ekranı.
    - Tek öğrenci `.docx` ve sınıf için ZIP indirme; eksik alan kontrolü (ilerleme göstergesi zaten var).
-2. **iPad gerçek cihaz testi** (Safari, Dosyalar uygulaması, LOGINEO indirme/yükleme, ana ekrana ekleme).
+2. **iPad gerçek cihaz testi** canlı adreste (Safari, Dosyalar uygulaması, LOGINEO indirme/yükleme, ana ekrana ekleme, çevrimdışı açılış).
 3. Hareketsizlikte otomatik kapanma (öğretmen ve Verwaltung), kullanıcı onaylı PWA güncelleme bildirimi.
 4. Yeni yarıyıl: önceki okul dosyasından temel verileri ve katalogları kopyalayarak yeni dosya oluşturma.
 5. İsteğe bağlı: `.xlsx` doğrudan içe aktarma, sınıf görünümü (tüm öğrenciler × bir kriter tablosu).
