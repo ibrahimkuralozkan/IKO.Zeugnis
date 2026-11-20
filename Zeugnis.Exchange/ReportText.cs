@@ -25,6 +25,24 @@ public static class ReportText
         return year.Length == 7 && int.TryParse(year[..4], out var start) ? (start + 1).ToString() : "";
     }
 
+    // Feste Feldschlüssel, aus denen das Zeugnis Sätze bildet (im Katalog als „Zahl“ bzw. „Auswahl“ anlegen).
+    public const string AbsenceKey = "n:Fehlstunden";
+    public const string UnexcusedKey = "n:Fehlstunden-unentschuldigt";
+    public const string LateKey = "n:Verspaetungen";
+    public const string SchoolTypeKey = "s:Schulform";
+    public const string SchoolTypeLimitedKey = "s:Schulform-eingeschraenkt";
+
+    public static string Weekday(DateOnly d) => d.DayOfWeek switch
+    {
+        DayOfWeek.Monday => "Montag",
+        DayOfWeek.Tuesday => "Dienstag",
+        DayOfWeek.Wednesday => "Mittwoch",
+        DayOfWeek.Thursday => "Donnerstag",
+        DayOfWeek.Friday => "Freitag",
+        DayOfWeek.Saturday => "Samstag",
+        _ => "Sonntag",
+    };
+
     /// <summary>Note als Wort, wie sie im Zeugnis steht.</summary>
     public static string GradeWord(string? grade) => grade switch
     {

@@ -124,6 +124,13 @@ else
                                 </div>
                                 break;
 
+                            case FieldKind.Number:
+                                var number = Context.Get(st, g.Keys[0]);
+                                <input class="number-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4"
+                                       value="@number" aria-label="@g.Section.Title" placeholder="0"
+                                       @oninput="e => SetText(st, g.Keys[0], new string((e.Value?.ToString() ?? string.Empty).Where(char.IsAsciiDigit).Take(4).ToArray()))" />
+                                break;
+
                             default:
                                 var text = Context.Get(st, g.Keys[0]);
                                 <textarea class="report-text" rows="4" value="@text" aria-label="@g.Section.Title"

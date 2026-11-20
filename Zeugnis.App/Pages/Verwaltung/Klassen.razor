@@ -71,6 +71,38 @@
                 </div>
             }
         </div>
+
+        @if (f.Classes.Count > 0)
+        {
+            <div class="card">
+                <h2>Zeugnisangaben je Klasse</h2>
+                <p class="muted">
+                    Gilt für alle Zeugnisse der Klasse in diesem Halbjahr. Der Wochentag des Wiederbeginns ergibt sich aus dem Datum.
+                    Das Ausgabedatum erscheint zusammen mit dem Schulort (@(string.IsNullOrWhiteSpace(f.School.Town) ? "unter „Schule“ eintragen" : f.School.Town)).
+                </p>
+                <div class="table-wrap">
+                    <table class="list date-grid">
+                        <thead><tr><th>Klasse</th><th>Zeugniskonferenz</th><th>Ausgabedatum</th><th>Wiederbeginn</th><th>Uhrzeit</th></tr></thead>
+                        <tbody>
+                            @foreach (var c in f.Classes)
+                            {
+                                <tr @key="c.Name">
+                                    <td><strong>@c.Name</strong></td>
+                                    <td><input type="date" value="@Iso(c.ConferenceDate)" aria-label="Zeugniskonferenz @c.Name"
+                                               @onchange="e => SetDate(c, DateField.Conference, e.Value)" /></td>
+                                    <td><input type="date" value="@Iso(c.ReportDate)" aria-label="Ausgabedatum @c.Name"
+                                               @onchange="e => SetDate(c, DateField.Report, e.Value)" /></td>
+                                    <td><input type="date" value="@Iso(c.ResumptionDate)" aria-label="Wiederbeginn @c.Name"
+                                               @onchange="e => SetDate(c, DateField.Resumption, e.Value)" /></td>
+                                    <td><input type="time" value="@c.ResumptionTime" aria-label="Uhrzeit Wiederbeginn @c.Name"
+                                               @onchange="e => SetTime(c, e.Value)" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
     }
 </AdminFrame>
 
@@ -114,6 +146,28 @@
             Change(f => MasterData.UpdateClass(f, name, _editNewName, _editGrade, _editTeacher, DateTimeOffset.UtcNow)))
             _editName = null;
     }
+
+    private static string Iso(DateOnly? d) => d?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) ?? "";
+
+    private static DateOnly? Parse(object? value) =>
+        DateOnly.TryParseExact(value?.ToString(), "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out var d) ? d : null;
+
+    private enum DateField { Conference, Report, Resumption }
+
+    /// <summary>Ändert genau eine Angabe; ein geleertes Feld entfernt sie.</summary>
+    private void SetDate(SchoolClass c, DateField field, object? value)
+    {
+        var d = Parse(value);
+        Change(f => MasterData.SetClassReportDates(f, c.Name,
+            field == DateField.Conference ? d : c.ConferenceDate,
+            field == DateField.Report ? d : c.ReportDate,
+            field == DateField.Resumption ? d : c.ResumptionDate,
+            c.ResumptionTime));
+    }
+
+    private void SetTime(SchoolClass c, object? value) =>
+        Change(f => MasterData.SetClassReportDates(f, c.Name, c.ConferenceDate, c.ReportDate, c.ResumptionDate, value?.ToString()));
 
     private void AskRemove(string name)
     {

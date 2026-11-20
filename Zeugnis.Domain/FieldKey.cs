@@ -11,6 +11,8 @@ public enum FieldKind
     Grade,
     /// <summary>Auswahlwert (z. B. Versetzungsentscheidung).</summary>
     Selection,
+    /// <summary>Ganze Zahl ≥ 0 (z. B. Fehlstunden).</summary>
+    Number,
 }
 
 /// <summary>
@@ -26,6 +28,7 @@ public readonly record struct FieldKey
         [FieldKind.Text] = 't',
         [FieldKind.Grade] = 'g',
         [FieldKind.Selection] = 's',
+        [FieldKind.Number] = 'n',
     };
 
     public FieldKind Kind { get; }
@@ -43,6 +46,7 @@ public readonly record struct FieldKey
     public static FieldKey Text(string path) => new(FieldKind.Text, path);
     public static FieldKey Grade(string path) => new(FieldKind.Grade, path);
     public static FieldKey Selection(string path) => new(FieldKind.Selection, path);
+    public static FieldKey Number(string path) => new(FieldKind.Number, path);
 
     public override string ToString() => $"{Prefix[Kind]}:{Path}";
 

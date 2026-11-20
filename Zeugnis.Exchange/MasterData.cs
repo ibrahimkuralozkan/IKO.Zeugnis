@@ -86,6 +86,26 @@ public static class MasterData
         cls.ClassTeacherId = classTeacherId;
     }
 
+    /// <summary>Zeugnisangaben der Klasse: Konferenz, Ausgabedatum, Wiederbeginn des Unterrichts.</summary>
+    public static void SetClassReportDates(SchoolFile f, string name, DateOnly? conference, DateOnly? report,
+        DateOnly? resumption, string? resumptionTime)
+    {
+        var cls = ClassByName(f, name);
+        var time = (resumptionTime ?? "").Trim();
+        if (time.Length > 0)
+        {
+            // Browser liefern je nach Gerät „8:00“, „08:00“ oder „08:00:00“; gespeichert wird „08:00“.
+            if (!TimeOnly.TryParseExact(time, ["H:mm", "HH:mm", "HH:mm:ss"], System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None, out var parsed))
+                throw new MasterDataException("Bitte die Uhrzeit im Format 08:00 angeben.");
+            time = parsed.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+        }
+        cls.ConferenceDate = conference;
+        cls.ReportDate = report;
+        cls.ResumptionDate = resumption;
+        cls.ResumptionTime = time;
+    }
+
     public static void RemoveClass(SchoolFile f, string name, DateTimeOffset now)
     {
         var cls = ClassByName(f, name);

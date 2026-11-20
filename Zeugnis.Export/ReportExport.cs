@@ -35,9 +35,44 @@ public static class ReportExport
             "term.schoolyear" => f.Term.SchoolYear,
             "term.halfyear" => halfYear,
             "date" => today.ToString("dd.MM.yyyy", de),
+            "class.konferenzdatum" => Date(cls?.ConferenceDate),
+            "class.zeugnisdatum" => Date(cls?.ReportDate),
+            "class.wiederbeginndatum" => Date(cls?.ResumptionDate),
+            "class.konferenz" => cls?.ConferenceDate is { } k
+                ? $"Das Zeugnis wird aufgrund des Konferenzbeschlusses vom {Date(k)} erteilt." : "",
+            "class.ortdatum" => cls?.ReportDate is { } r
+                ? (f.School.Town.Length > 0 ? $"{f.School.Town}, den {Date(r)}" : Date(r)) : f.School.Town,
+            "class.wiederbeginn" => cls?.ResumptionDate is { } w
+                ? $"Wiederbeginn des Unterrichts am {ReportText.Weekday(w)}, den {Date(w)}" +
+                  (cls.ResumptionTime.Length > 0 ? $" um {cls.ResumptionTime} Uhr." : ".")
+                : "",
+            "student.fehlstunden" =>
+                $"Fehlstunden insgesamt: {Count(ReportText.AbsenceKey)}, davon unentschuldigt: {Count(ReportText.UnexcusedKey)}",
+            "student.verspaetungen" => $"Anzahl der Verspätungen: {Count(ReportText.LateKey)}",
+            "student.schulform.titel" => HasSchoolType() ? "Empfehlung zur Wahl der Schulformen in der Sekundarstufe I" : "",
+            "student.schulform.einleitung" => HasSchoolType()
+                ? $"Die Klassenkonferenz hat am {(cls?.ConferenceDate is { } kd ? Date(kd) : "__________")} beschlossen, " +
+                  $"dass {name} auf der Grundlage des Leistungsstandes, der Lernentwicklung und der Fähigkeiten " +
+                  "sowie des Arbeitsverhaltens und des Sozialverhaltens auf der Grundlage eines Beschlusses der " +
+                  "Schulkonferenz nach § 49 Abs. 2 SchulG für"
+                : "",
+            "student.schulform.auswahl" => HasSchoolType()
+                ? $"{Box(ReportText.SchoolTypeKey, "hauptschule")} der Hauptschule   " +
+                  $"{Box(ReportText.SchoolTypeKey, "realschule")} der Realschule   " +
+                  $"{Box(ReportText.SchoolTypeKey, "gymnasium")} des Gymnasiums und der Gesamtschule sowie der Sekundarschule geeignet ist."
+                : "",
+            "student.schulform.eingeschraenkt" => HasSchoolType()
+                ? $"Für den Besuch {Box(ReportText.SchoolTypeLimitedKey, "realschule")} der Realschule   " +
+                  $"{Box(ReportText.SchoolTypeLimitedKey, "gymnasium")} des Gymnasiums ist {name} mit Einschränkungen geeignet."
+                : "",
             _ when FieldKey.TryParse(tag, out var key) => Field(key, report?.Get(tag) ?? ""),
             _ => null,
         };
+
+        string Date(DateOnly? d) => d?.ToString("dd.MM.yyyy", de) ?? "";
+        string Count(string key) => report?.Get(key) is { Length: > 0 } v ? v : "0";
+        string Box(string key, string option) => report?.Get(key) == option ? "☒" : "☐";
+        bool HasSchoolType() => catalog?.FieldKeys().Contains(ReportText.SchoolTypeKey) == true;
 
         string Field(FieldKey key, string value) => key.Kind switch
         {

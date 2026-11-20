@@ -289,7 +289,7 @@
 
     private static string KindLabel(FieldKind k) => k switch
     {
-        FieldKind.Rating => "Ankreuzen", FieldKind.Grade => "Note", FieldKind.Text => "Text", _ => "Auswahl",
+        FieldKind.Rating => "Ankreuzen", FieldKind.Grade => "Note", FieldKind.Text => "Text", FieldKind.Number => "Zahl", _ => "Auswahl",
     };
 
     private string SuggestedLabel(SchoolFile f)

@@ -225,6 +225,50 @@ public class WordExportTests
     }
 
     [Fact]
+    public void Klassenangaben_Fehlzeiten_und_Schulform()
+    {
+        var f = School();
+        MasterData.SetClassReportDates(f, "3a", new DateOnly(2027, 6, 20), new DateOnly(2027, 6, 25), new DateOnly(2027, 8, 11), "08:00");
+        var s = f.Students[0];
+        var empty = ReportExport.ValuesFor(f, s, Today);
+        Assert.Equal("Fehlstunden insgesamt: 0, davon unentschuldigt: 0", empty("student.fehlstunden"));
+        Assert.Equal("", empty("student.schulform.auswahl")); // Katalog ohne Schulform-Auswahl
+
+        f.Catalogs.Add(new Catalog
+        {
+            Grade = 3, Track = StudentTrack.Regular,
+            Sections = [new CatalogSection { Key = "Schulform", Kind = FieldKind.Selection,
+                Items = [new CatalogItem { Id = "realschule", Text = "Realschule" }, new CatalogItem { Id = "gymnasium", Text = "Gymnasium" }] }],
+        });
+        var now = DateTimeOffset.UtcNow;
+        f.ReportFor(s.Id).Set("n:Fehlstunden", "12", "Verwaltung", now);
+        f.ReportFor(s.Id).Set("n:Fehlstunden-unentschuldigt", "2", "Verwaltung", now);
+        f.ReportFor(s.Id).Set("n:Verspaetungen", "3", "Verwaltung", now);
+        f.ReportFor(s.Id).Set("s:Schulform", "gymnasium", "Verwaltung", now);
+        var v = ReportExport.ValuesFor(f, s, Today);
+
+        Assert.Equal("Das Zeugnis wird aufgrund des Konferenzbeschlusses vom 20.06.2027 erteilt.", v("class.konferenz"));
+        Assert.Equal("Testort, den 25.06.2027", v("class.ortdatum"));
+        Assert.Equal("Wiederbeginn des Unterrichts am Mittwoch, den 11.08.2027 um 08:00 Uhr.", v("class.wiederbeginn"));
+        Assert.Equal("Fehlstunden insgesamt: 12, davon unentschuldigt: 2", v("student.fehlstunden"));
+        Assert.Equal("Anzahl der Verspätungen: 3", v("student.verspaetungen"));
+        Assert.StartsWith("☐ der Hauptschule   ☐ der Realschule   ☒ des Gymnasiums", v("student.schulform.auswahl"));
+        Assert.Contains("am 20.06.2027 beschlossen, dass Anna Muster", v("student.schulform.einleitung"));
+        Assert.Equal("n:Fehlstunden", FieldKey.Number("Fehlstunden").ToString());
+    }
+
+    [Fact]
+    public void Ungueltige_Uhrzeit_wird_abgelehnt()
+    {
+        var f = School();
+        Assert.Throws<MasterDataException>(() => MasterData.SetClassReportDates(f, "3a", null, null, null, "8 Uhr"));
+        MasterData.SetClassReportDates(f, "3a", null, null, null, "08:00:00");
+        Assert.Equal("08:00", f.Classes[0].ResumptionTime);
+        MasterData.SetClassReportDates(f, "3a", null, null, null, "7:45");
+        Assert.Equal("07:45", f.Classes[0].ResumptionTime);
+    }
+
+    [Fact]
     public void Klassen_ZIP_enthaelt_eine_Datei_je_Schueler()
     {
         var f = School();

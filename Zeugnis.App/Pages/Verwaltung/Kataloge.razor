@@ -217,6 +217,10 @@
                     {
                         <p class="muted small">Note 1–6 für das Fach.</p>
                     }
+                    else if (s.Kind == FieldKind.Number)
+                    {
+                        <p class="muted small">Ganze Zahl, z. B. Fehlstunden.</p>
+                    }
                     else
                     {
                         <p class="muted small">Freitext, z. B. Bemerkungen.</p>
@@ -228,7 +232,7 @@
 </AdminFrame>
 
 @code {
-    private static readonly FieldKind[] Kinds = [FieldKind.Rating, FieldKind.Grade, FieldKind.Text, FieldKind.Selection];
+    private static readonly FieldKind[] Kinds = [FieldKind.Rating, FieldKind.Grade, FieldKind.Text, FieldKind.Selection, FieldKind.Number];
 
     private string? _selectedId;
     private bool _newOpen;
@@ -264,6 +268,7 @@
         FieldKind.Rating => "Ankreuzbewertung",
         FieldKind.Grade => "Note",
         FieldKind.Text => "Freitext",
+        FieldKind.Number => "Zahl",
         _ => "Auswahl",
     };
 

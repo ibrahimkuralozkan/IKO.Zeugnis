@@ -39,6 +39,16 @@ public sealed class SchoolClass
     /// <summary>Jahrgangsstufe 1–4.</summary>
     public int Grade { get; set; }
     public Guid? ClassTeacherId { get; set; }
+
+    // Angaben, die für alle Zeugnisse der Klasse gelten (Halbjahr der Schuldatei).
+    /// <summary>Datum der Zeugniskonferenz.</summary>
+    public DateOnly? ConferenceDate { get; set; }
+    /// <summary>Ausgabedatum des Zeugnisses (erscheint mit dem Schulort).</summary>
+    public DateOnly? ReportDate { get; set; }
+    /// <summary>Wiederbeginn des Unterrichts nach den Ferien.</summary>
+    public DateOnly? ResumptionDate { get; set; }
+    /// <summary>Uhrzeit des Wiederbeginns, z. B. „08:00“ (optional).</summary>
+    public string ResumptionTime { get; set; } = "";
 }
 
 public sealed class Student
