@@ -71,13 +71,17 @@ public static class MasterData
         if (f.Classes.Any(c => c != cls && Same(c.Name, clean)))
             throw new MasterDataException($"Die Klasse „{clean}“ ist bereits vorhanden.");
         if (classTeacherId is { } tid) TeacherById(f, tid);
-        if (grade != cls.Grade && f.Assignments.Any(a => a.ClassName == cls.Name && !a.Revoked))
+        if (grade != cls.Grade && f.Assignments.Any(a => a.Classes().Contains(cls.Name) && !a.Revoked))
             throw new MasterDataException("Die Jahrgangsstufe kann nicht geändert werden, solange Arbeitsaufträge dieser Klasse offen sind.");
 
         if (cls.Name != clean)
         {
             foreach (var s in f.Students.Where(s => s.ClassName == cls.Name)) s.ClassName = clean;
-            foreach (var a in f.Assignments.Where(a => a.ClassName == cls.Name)) a.ClassName = clean;
+            foreach (var a in f.Assignments.Where(a => a.Classes().Contains(cls.Name)))
+            {
+                a.ClassNames = a.Classes().Select(n => n == cls.Name ? clean : n).ToList();
+                a.ClassName = string.Join(", ", a.ClassNames);
+            }
             Log(f, now, "Klasse umbenannt", $"{cls.Name} → {clean}");
             cls.Name = clean;
             f.Classes.Sort((a, b) => NaturalCompare(a.Name, b.Name));

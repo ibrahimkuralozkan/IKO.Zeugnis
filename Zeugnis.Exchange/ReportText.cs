@@ -8,15 +8,46 @@ namespace Zeugnis.Exchange;
 /// </summary>
 public static class ReportText
 {
-    public static readonly string[] Placeholders = ["{Name}", "{Vorname}", "{Nachname}", "{Klasse}", "{Schuljahresende}"];
+    public static readonly string[] Placeholders =
+        ["{Name}", "{Vorname}", "{Nachname}", "{Klasse}", "{Schuljahresende}", "{ErSie}", "{n:Feld}", "{d:Feld}", "{t:Feld}"];
 
-    public static string Fill(string text, Student s, Term? term) =>
-        string.IsNullOrEmpty(text) || !text.Contains('{') ? text : text
+    private static readonly System.Text.RegularExpressions.Regex FieldPlaceholder =
+        new(@"\{([a-z]:[^{}\s]+)\}", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Ersetzt Platzhalter. <paramref name="fieldValue"/> liefert Werte für <c>{n:…}</c>, <c>{d:…}</c> usw.;
+    /// leere Werte werden als Lücke („__“ bzw. „____“) gedruckt, damit sie im Zeugnis auffallen.
+    /// </summary>
+    public static string Fill(string text, Student s, Term? term, Func<string, string?>? fieldValue = null)
+    {
+        if (string.IsNullOrEmpty(text) || !text.Contains('{')) return text;
+        var result = text
             .Replace("{Name}", $"{s.FirstName} {s.LastName}".Trim())
             .Replace("{Vorname}", s.FirstName)
             .Replace("{Nachname}", s.LastName)
             .Replace("{Klasse}", s.ClassName)
-            .Replace("{Schuljahresende}", SchoolYearEnd(term));
+            .Replace("{Schuljahresende}", SchoolYearEnd(term))
+            .Replace("{ErSie}", s.Gender == Gender.Female ? "Sie" : "Er");
+        if (fieldValue is null) return result;
+        return FieldPlaceholder.Replace(result, m =>
+        {
+            var key = m.Groups[1].Value;
+            var value = fieldValue(key) ?? "";
+            return key[0] switch
+            {
+                'd' => DateText(value) is { Length: > 0 } d ? d : "____",
+                'n' => value.Length > 0 ? value : "__",
+                _ => value.Length > 0 ? value : "____",
+            };
+        });
+    }
+
+    /// <summary>„2024-03-15“ → „15.03.2024“; anderes bleibt, wie es ist.</summary>
+    public static string DateText(string? iso) =>
+        DateOnly.TryParseExact(iso, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out var d)
+            ? d.ToString("dd.MM.yyyy", System.Globalization.CultureInfo.InvariantCulture)
+            : iso ?? "";
 
     /// <summary>„2026/27“ → „2027“ (Jahr, in dem das Schuljahr endet).</summary>
     public static string SchoolYearEnd(Term? term)

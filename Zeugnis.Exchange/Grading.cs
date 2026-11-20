@@ -51,8 +51,11 @@ public sealed class GradingContext
         var catalog = CatalogFor(s);
         if (catalog is null) return [];
         var result = new List<GradingSection>();
+        var report = ReportFor(s);
         foreach (var section in catalog.Sections)
         {
+            // Abhängige Bereiche (z. B. Religion bei Nichtteilnahme) erscheinen nicht und zählen nicht zum Fortschritt.
+            if (!SectionCondition.IsVisible(section.VisibleWhen, report.Get)) continue;
             if (section.Kind == FieldKind.Rating)
             {
                 var items = section.Items.Where(i => IsAllowed(section.ItemKey(i.Id))).ToList();
@@ -92,8 +95,11 @@ public sealed class GradingContext
     {
         var reports = a.Reports.ToDictionary(r => r.StudentId);
         return new GradingContext(
-            a.Students.OrderBy(s => s.LastName).ThenBy(s => s.FirstName).ToList(),
-            s => a.Catalogs.FirstOrDefault(c => c.Track == s.Track),
+            a.Students.OrderBy(s => s.ClassName, StringComparer.Ordinal).ThenBy(s => s.LastName).ThenBy(s => s.FirstName).ToList(),
+            // Ältere Aufträge (eine Klasse) kennen keine Jahrgangszuordnung: dann nur nach Bildungsgang.
+            s => a.ClassGrades.TryGetValue(s.ClassName, out var grade)
+                ? a.Catalogs.FirstOrDefault(c => c.Grade == grade && c.Track == s.Track)
+                : a.Catalogs.FirstOrDefault(c => c.Track == s.Track),
             id =>
             {
                 if (!reports.TryGetValue(id, out var r))

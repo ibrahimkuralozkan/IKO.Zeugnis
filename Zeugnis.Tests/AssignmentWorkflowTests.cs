@@ -98,13 +98,13 @@ public class AssignmentWorkflowTests
         TestData.SportAssignment(school);
         var ids = school.Students.Select(s => s.Id).ToList();
 
-        var same = AssignmentFactory.FindOverlaps(school, "3a", ids, ["g:Sport"]);
+        var same = AssignmentFactory.FindOverlaps(school, ["3a"], ids, ["g:Sport"]);
         var overlap = Assert.Single(same);
         Assert.Equal(2, overlap.Students);
 
-        Assert.Empty(AssignmentFactory.FindOverlaps(school, "3a", ids, ["t:Allgemein"]));
+        Assert.Empty(AssignmentFactory.FindOverlaps(school, ["3a"], ids, ["t:Allgemein"]));
         school.Assignments[0].Revoked = true;
-        Assert.Empty(AssignmentFactory.FindOverlaps(school, "3a", ids, ["g:Sport"]));
+        Assert.Empty(AssignmentFactory.FindOverlaps(school, ["3a"], ids, ["g:Sport"]));
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public class AssignmentWorkflowTests
         var section = school.Catalogs[0].Sections[0];
         section.Items.Add(new CatalogItem { Id = "02", Text = "schwimmt" });
         var file = AssignmentFactory.Create(school,
-            new AssignmentRequest(TestData.Sport(school).Id, "3a", "nur 01", ["r:Sport.01"], TestData.Now.AddDays(3)), TestData.Now);
+            new AssignmentRequest(TestData.Sport(school).Id, ["3a"], "nur 01", ["r:Sport.01"], TestData.Now.AddDays(3)), TestData.Now);
         Assert.Equal(["01"], file.Catalogs.Single().Sections.Single().Items.Select(i => i.Id));
     }
 

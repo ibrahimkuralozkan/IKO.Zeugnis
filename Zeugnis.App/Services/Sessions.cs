@@ -189,7 +189,7 @@ public sealed class TeacherSession(EnvelopeCodec codec, IJSRuntime js)
         var now = DateTimeOffset.UtcNow;
         var response = ResponseBuilder.Create(Assignment, now);
         var bytes = await codec.SealAsync(response, EnvelopeKind.Response, _password, ResponseBuilder.Reference(Assignment.AssignmentId));
-        var name = $"Rueckgabe_{FileService.SafeFileName(Assignment.ClassName)}_{FileService.SafeFileName(Assignment.Label)}_{FileService.SafeFileName(Assignment.TeacherName)}_{DateTime.Now:yyyyMMdd-HHmm}{EnvelopeCodec.Extension(EnvelopeKind.Response)}";
+        var name = $"Rueckgabe_{AssignmentFactory.ClassPart(Assignment.ClassNames, Assignment.ClassName)}_{FileService.SafeFileName(Assignment.Label)}_{FileService.SafeFileName(Assignment.TeacherName)}_{DateTime.Now:yyyyMMdd-HHmm}{EnvelopeCodec.Extension(EnvelopeKind.Response)}";
         LastResponseUtc = now;
         ChangedSinceResponse = false;
         Changed?.Invoke();

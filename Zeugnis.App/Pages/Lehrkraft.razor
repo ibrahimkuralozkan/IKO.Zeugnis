@@ -28,7 +28,7 @@ else
     var total = ctx.TotalProgress();
     <div class="admin-head">
         <div>
-            <h1>@a.Label · Klasse @a.ClassName</h1>
+            <h1>@a.Label · @(a.ClassNames.Count > 1 ? "Klassen" : "Klasse") @a.ClassName</h1>
             <p class="muted">
                 @a.SchoolName · @a.Term · @a.TeacherName · Abgabe bis @a.ExpiresUtc.ToLocalTime().ToString("dd.MM.yyyy")
             </p>

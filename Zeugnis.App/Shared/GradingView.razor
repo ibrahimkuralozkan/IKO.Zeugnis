@@ -28,7 +28,7 @@ else
                     <li>
                         <button class="student @(s == Current ? "active" : "") @(p.IsComplete ? "done" : "")"
                                 @onclick="() => Select(s)" aria-current="@(s == Current ? "true" : null)">
-                            <span class="name">@s.LastName, @s.FirstName</span>
+                            <span class="name">@s.LastName, @s.FirstName@if (MultipleClasses) {<span class="muted small"> · @s.ClassName</span>}</span>
                             <span class="count">@(p.IsComplete ? "✓" : $"{p.Filled}/{p.Total}")</span>
                         </button>
                     </li>
@@ -124,6 +124,11 @@ else
                                 </div>
                                 break;
 
+                            case FieldKind.Date:
+                                <input type="date" value="@Context.Get(st, g.Keys[0])" aria-label="@g.Section.Title"
+                                       @onchange="e => SetText(st, g.Keys[0], e.Value?.ToString() ?? string.Empty)" />
+                                break;
+
                             case FieldKind.Number:
                                 var number = Context.Get(st, g.Keys[0]);
                                 <input class="number-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4"
@@ -201,6 +206,8 @@ else
         var next = Context.Get(s, key) == value ? "" : value;
         if (Context.Set(s, key, next, DateTimeOffset.UtcNow)) await OnChanged.InvokeAsync();
     }
+
+    private bool MultipleClasses => Context.Students.Select(s => s.ClassName).Distinct().Skip(1).Any();
 
     private async Task SetText(Student s, string key, string value)
     {

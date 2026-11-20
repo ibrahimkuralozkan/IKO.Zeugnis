@@ -58,7 +58,11 @@ Yayın: `.github/workflows/deploy-pwa.yml` – her `main` push'unda test + publi
 
 ## Durum (20.11.2026)
 
-Tamamlanan: v0.1 iskelet/şifreleme/birleştirme · v0.2 temel veriler + CSV · v0.2.1 katalog düzenleyici · v0.3 değerlendirme ekranı + şifreli taslak · v0.4 görevler + dönüş birleştirme (çakışma kararı) · v0.5 Word çıktısı · v0.5.1 sol panel (Lehrkraft/Verwaltung) · v0.5.2 ana sayfada adım adım açıklama · v0.6 hareketsizlikte otomatik kapanma + onaylı PWA güncellemesi · v0.7 yönü gösteren dosya uzantıları · v0.8 eski uygulamadan katalog/şablon devri için Word doldurucu geliştirmeleri · v0.9 sınıf zeugnis tarihleri, "Zahl" alan türü (Fehlzeiten), Schulformempfehlung.
+Tamamlanan: v0.1 iskelet/şifreleme/birleştirme · v0.2 temel veriler + CSV · v0.2.1 katalog düzenleyici · v0.3 değerlendirme ekranı + şifreli taslak · v0.4 görevler + dönüş birleştirme (çakışma kararı) · v0.5 Word çıktısı · v0.5.1 sol panel (Lehrkraft/Verwaltung) · v0.5.2 ana sayfada adım adım açıklama · v0.6 hareketsizlikte otomatik kapanma + onaylı PWA güncellemesi · v0.7 yönü gösteren dosya uzantıları · v0.8 eski uygulamadan katalog/şablon devri için Word doldurucu geliştirmeleri · v0.9 sınıf zeugnis tarihleri, "Zahl" alan türü (Fehlzeiten), Schulformempfehlung · v0.10 öğretmen başına çok sınıflı görev, Rücklauf, koşullu bölümler (Religion katılımı, Deutschförderung), "Datum" alan türü.
+
+- **Çok sınıflı görev (v0.10)**: `AssignmentRequest.ClassNames`; `IssuedAssignment.ClassNames` (+ görüntü `ClassName` = "3a, 4a"; eski dosyalar için `Classes()`), `AssignmentFile.ClassNames|ClassGrades` → her öğrenci kendi sınıf düzeyinin kataloğunu alır. Dosya adı `Auftrag_3a+4a_…`. Sınıf yeniden adlandırma görevlerdeki tüm sınıfları günceller.
+- **Rücklauf (`AssignmentStatus`)**: açık görevler için Missing/Overdue/Partial/Complete/Closed ve doldurulan alan sayısı (görünür bölümler, izinli alanlar). Aufträge sayfasında özet kartı + "Stand" sütunu.
+- **Koşullu bölümler**: `CatalogSection.VisibleWhen` = `s:Anahtar=değer` / `s:Anahtar!=değer` (`SectionCondition`). Gizli bölüm ekranda görünmez, ilerlemeye sayılmaz, Word'de boş. `CatalogItem.ReportText`: seçeneğin Word metni (`""` = hiçbir şey; null = etiket). Yer tutucular ayrıca `{ErSie}` ve alan değerleri `{n:…}` `{d:…}` `{t:…}` (boşsa `__`/`____`). Word tag'inde `a||b` = ilk dolu değer. Yeni tür `FieldKind.Date` (`d:`, ISO saklanır, Word'de TT.MM.JJJJ). Dönüştürücü: `s:Teilnahme-Religion` (ja/nein, nein → "{Vorname} hat nicht am Religionsunterricht teilgenommen."), tüm Religion bölümleri `!=nein`; `txt_Religion` → `t:Religion||s:Teilnahme-Religion`. `s:Deutschfoerderung` (nein/ja + eski uzun cümle) + `d:Deutschfoerderung-Seit` + `n:Deutschfoerderung-Stunden` (`=ja`). Katalog düzenleyici koşul ve Word metnini yalnız gösterir; düzenleme henüz yok.
 
 - **Dosya adları (v0.7, kullanıcı kararı)**: uzantı alıcıyı gösterir. `Auftrag_3a_Deutsch_Herr_Ali.an-lehrkraft` (Verwaltung → öğretmen), `Rueckgabe_3a_Deutsch_Herr_Ali_20261120-1430.an-verwaltung` (öğretmen → Verwaltung), `Schuldatei_2026-27_HJ1_R3.schuldatei` (R = revizyon). Eski `.zschule/.zauftrag/.zantwort` artık açılmaz; `.gitignore` ve yayın kontrolü ikisini de dışlar.
 
@@ -71,7 +75,7 @@ Tamamlanan: v0.1 iskelet/şifreleme/birleştirme · v0.2 temel veriler + CSV · 
 
 ## Sıradaki işler (öncelik sırasıyla)
 
-0. **Dosya alışverişi konusu** (hafızada, kullanıcı geri dönmek istiyor: öğretmen başına tek görev, durum tablosu, LOGINEO Aufgabe). Eski uygulamadaki Religion katılımı ve Deutschförderung cümlesi (toggle'lı) şu an serbest metin; istenirse eklenir.
+0. Dosya alışverişinde açık kalan: öğretmen başına dönem boyunca tek parola (güvenlik kararı kullanıcıda), LOGINEO LMS "Aufgabe" ile gerçek deneme. Katalog düzenleyicide `VisibleWhen`/`ReportText` düzenleme alanı.
 1. **iPad gerçek cihaz testi** canlı adreste (Safari, Dosyalar uygulaması, LOGINEO indirme/yükleme, ana ekrana ekleme, çevrimdışı açılış, güncelleme banner'ı).
 2. Word: Verwaltung'da şablonda kullanılabilecek tag'leri listeleyen yardım ekranı; ZIP öncesi eksik alan kontrolü. Öğretmen tarafı hareketsizlik kapanışı tarayıcıda gerçek `.an-lehrkraft` ile henüz denenmedi.
 3. Yeni yarıyıl: önceki okul dosyasından temel verileri ve katalogları kopyalayarak yeni dosya oluşturma.

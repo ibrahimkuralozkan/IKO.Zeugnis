@@ -19,7 +19,26 @@ public static class ReportExport
         var catalog = cls is null ? null : CatalogEditor.For(f, cls.Grade, s.Track);
         var name = $"{s.FirstName} {s.LastName}".Trim();
         var halfYear = $"{f.Term.HalfYear}. Halbjahr";
-        return tag => tag switch
+        var sectionOf = new Dictionary<string, CatalogSection>(StringComparer.Ordinal);
+        foreach (var sec in catalog?.Sections ?? [])
+            foreach (var k in sec.FieldKeys()) sectionOf.TryAdd(k, sec);
+
+        // „a||b“: erster nicht leerer Wert, z. B. Religionsbemerkung oder – bei Nichtteilnahme – der Hinweissatz.
+        return tag =>
+        {
+            if (!tag.Contains("||")) return Single(tag);
+            string? known = null;
+            foreach (var part in tag.Split("||"))
+            {
+                var v = Single(part.Trim());
+                if (v is null) continue;
+                if (v.Length > 0) return v;
+                known ??= v;
+            }
+            return known;
+        };
+
+        string? Single(string tag) => tag switch
         {
             "student.name" => name,
             "student.firstname" => s.FirstName,
@@ -74,17 +93,23 @@ public static class ReportExport
         string Box(string key, string option) => report?.Get(key) == option ? "☒" : "☐";
         bool HasSchoolType() => catalog?.FieldKeys().Contains(ReportText.SchoolTypeKey) == true;
 
-        string Field(FieldKey key, string value) => key.Kind switch
+        string Field(FieldKey key, string value)
         {
-            FieldKind.Grade => ReportText.GradeWord(value),
-            // Auswahl: im Zeugnis steht der Text der gewählten Möglichkeit, mit Platzhaltern ersetzt.
-            FieldKind.Selection => catalog?.Sections
-                .FirstOrDefault(x => x.Kind == FieldKind.Selection && x.Key == key.Path)?.Items
-                .FirstOrDefault(i => i.Id == value) is { } option
-                ? ReportText.Fill(option.Text, s, f.Term)
-                : value,
-            _ => value,
-        };
+            // Ausgeblendete Bereiche (Bedingung nicht erfüllt) bleiben im Zeugnis leer.
+            if (sectionOf.TryGetValue(key.ToString(), out var section) &&
+                !SectionCondition.IsVisible(section.VisibleWhen, k => report?.Get(k)))
+                return "";
+            return key.Kind switch
+            {
+                FieldKind.Grade => ReportText.GradeWord(value),
+                FieldKind.Date => ReportText.DateText(value),
+                // Auswahl: Zeugnistext der gewählten Möglichkeit (sonst ihre Beschriftung), mit Platzhaltern ersetzt.
+                FieldKind.Selection => section?.Items.FirstOrDefault(i => i.Id == value) is { } option
+                    ? ReportText.Fill(option.ReportText ?? option.Text, s, f.Term, k => report?.Get(k))
+                    : value,
+                _ => value,
+            };
+        }
     }
 
     /// <summary>Ein Zeugnis als .docx für einen Schüler. Die Vorlage richtet sich nach Klasse und Bildungsgang.</summary>

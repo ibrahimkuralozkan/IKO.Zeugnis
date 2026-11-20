@@ -47,9 +47,15 @@ public sealed class IssuedAssignment
     public Guid AssignmentId { get; set; }
     public Guid TeacherId { get; set; }
     public string TeacherName { get; set; } = "";
+    /// <summary>Anzeige, z. B. „3a“ oder „3a, 3b“.</summary>
     public string ClassName { get; set; } = "";
+    /// <summary>Alle Klassen des Auftrags (ein Auftrag je Lehrkraft kann mehrere Klassen umfassen).</summary>
+    public List<string> ClassNames { get; set; } = [];
     public string Label { get; set; } = "";
     public List<Guid> StudentIds { get; set; } = [];
+
+    /// <summary>Klassen des Auftrags; ältere Schuldateien kennen nur <see cref="ClassName"/>.</summary>
+    public IReadOnlyList<string> Classes() => ClassNames.Count > 0 ? ClassNames : [ClassName];
     public List<string> AllowedFields { get; set; } = [];
     public DateTimeOffset IssuedUtc { get; set; }
     public DateTimeOffset ExpiresUtc { get; set; }
@@ -84,7 +90,11 @@ public sealed class AssignmentFile
     public string SchoolName { get; set; } = "";
     public Guid TeacherId { get; set; }
     public string TeacherName { get; set; } = "";
+    /// <summary>Anzeige, z. B. „3a“ oder „3a, 3b“.</summary>
     public string ClassName { get; set; } = "";
+    public List<string> ClassNames { get; set; } = [];
+    /// <summary>Jahrgangsstufe je Klasse, damit jeder Schüler den richtigen Katalog erhält.</summary>
+    public Dictionary<string, int> ClassGrades { get; set; } = [];
     public string Label { get; set; } = "";
     public DateTimeOffset IssuedUtc { get; set; }
     public DateTimeOffset ExpiresUtc { get; set; }

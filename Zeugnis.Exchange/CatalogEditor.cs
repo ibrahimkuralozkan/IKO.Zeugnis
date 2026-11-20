@@ -311,11 +311,7 @@ public static class CatalogEditor
     private static Catalog Clone(Catalog c) => new()
     {
         Id = c.Id, Title = c.Title, Grade = c.Grade, Track = c.Track, RatingScale = [.. c.RatingScale],
-        Sections = c.Sections.Select(s => new CatalogSection
-        {
-            Key = s.Key, Title = s.Title, Subject = s.Subject, Kind = s.Kind, NextItemNumber = s.NextItemNumber,
-            Items = s.Items.Select(i => new CatalogItem { Id = i.Id, Text = i.Text }).ToList(),
-        }).ToList(),
+        Sections = c.Sections.Select(s => s.Copy()).ToList(),
     };
 
     internal static Catalog CloneInternal(Catalog c) => Clone(c);

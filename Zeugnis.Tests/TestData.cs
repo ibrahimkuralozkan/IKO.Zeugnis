@@ -46,6 +46,6 @@ internal static class TestData
 
     public static AssignmentFile SportAssignment(SchoolFile school) =>
         AssignmentFactory.Create(school,
-            new AssignmentRequest(Sport(school).Id, "3a", "Sport", ["r:Sport.*", "g:Sport"], Now.AddDays(14)),
+            new AssignmentRequest(Sport(school).Id, ["3a"], "Sport", ["r:Sport.*", "g:Sport"], Now.AddDays(14)),
             Now);
 }

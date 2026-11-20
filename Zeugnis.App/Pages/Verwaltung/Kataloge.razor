@@ -156,6 +156,10 @@
                                            @onchange="e => Change(x => CatalogEditor.UpdateSection(x, cat.Id, s.Kind, s.Key, s.Title, e.Value?.ToString() ?? string.Empty))" />
                                 </label>
                                 <code title="Feldschlüssel – ändert sich nie">@KeyLabel(s)</code>
+                                @if (!string.IsNullOrWhiteSpace(s.VisibleWhen))
+                                {
+                                    <span class="muted small" title="Bereich erscheint nur unter dieser Bedingung">nur wenn <code>@s.VisibleWhen</code></span>
+                                }
                             </div>
                         </div>
                         <div class="section-actions">
@@ -194,6 +198,10 @@
                                     {
                                         <input value="@item.Text" aria-label="Auswahlmöglichkeit"
                                                @onchange="e => Change(x => CatalogEditor.UpdateItem(x, cat.Id, s.Kind, s.Key, item.Id, e.Value?.ToString() ?? string.Empty))" />
+                                        @if (item.ReportText is { } rt)
+                                        {
+                                            <span class="muted small" title="Text im Zeugnis">Zeugnis: @(rt.Length == 0 ? "(nichts)" : rt)</span>
+                                        }
                                     }
                                     @if (_deleteItem == (s.Kind, s.Key, item.Id))
                                     {
@@ -221,6 +229,10 @@
                     {
                         <p class="muted small">Ganze Zahl, z. B. Fehlstunden.</p>
                     }
+                    else if (s.Kind == FieldKind.Date)
+                    {
+                        <p class="muted small">Datum, im Zeugnis als TT.MM.JJJJ.</p>
+                    }
                     else
                     {
                         <p class="muted small">Freitext, z. B. Bemerkungen.</p>
@@ -232,7 +244,7 @@
 </AdminFrame>
 
 @code {
-    private static readonly FieldKind[] Kinds = [FieldKind.Rating, FieldKind.Grade, FieldKind.Text, FieldKind.Selection, FieldKind.Number];
+    private static readonly FieldKind[] Kinds = [FieldKind.Rating, FieldKind.Grade, FieldKind.Text, FieldKind.Selection, FieldKind.Number, FieldKind.Date];
 
     private string? _selectedId;
     private bool _newOpen;
@@ -269,6 +281,7 @@
         FieldKind.Grade => "Note",
         FieldKind.Text => "Freitext",
         FieldKind.Number => "Zahl",
+        FieldKind.Date => "Datum",
         _ => "Auswahl",
     };
 

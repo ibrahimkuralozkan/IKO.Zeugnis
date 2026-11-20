@@ -65,6 +65,8 @@ public static class CatalogTransfer
                 throw new MasterDataException($"Katalog „{c.Title}“ enthält einen ungültigen Bereich.");
             if (s.Items.Select(i => i.Id).Distinct().Count() != s.Items.Count || s.Items.Any(i => i.Id.Length == 0 || i.Id.Contains('.')))
                 throw new MasterDataException($"Katalog „{c.Title}“ enthält doppelte oder ungültige Einträge.");
+            if (!string.IsNullOrWhiteSpace(s.VisibleWhen) && !SectionCondition.IsValid(s.VisibleWhen))
+                throw new MasterDataException($"Katalog „{c.Title}“: ungültige Bedingung „{s.VisibleWhen}“.");
         }
         if (c.Sections.GroupBy(s => (s.Kind, s.Key)).Any(g => g.Count() > 1))
             throw new MasterDataException($"Katalog „{c.Title}“ enthält doppelte Bereiche.");

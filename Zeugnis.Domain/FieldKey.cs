@@ -13,6 +13,8 @@ public enum FieldKind
     Selection,
     /// <summary>Ganze Zahl ≥ 0 (z. B. Fehlstunden).</summary>
     Number,
+    /// <summary>Datum, gespeichert als <c>yyyy-MM-dd</c>.</summary>
+    Date,
 }
 
 /// <summary>
@@ -29,6 +31,7 @@ public readonly record struct FieldKey
         [FieldKind.Grade] = 'g',
         [FieldKind.Selection] = 's',
         [FieldKind.Number] = 'n',
+        [FieldKind.Date] = 'd',
     };
 
     public FieldKind Kind { get; }

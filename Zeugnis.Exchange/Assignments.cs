@@ -5,7 +5,7 @@ namespace Zeugnis.Exchange;
 
 public sealed record AssignmentRequest(
     Guid TeacherId,
-    string ClassName,
+    IReadOnlyCollection<string> ClassNames,
     string Label,
     IReadOnlyCollection<string> AllowedFields,
     DateTimeOffset ExpiresUtc,
@@ -23,8 +23,11 @@ public static class AssignmentFactory
     {
         var teacher = school.Teachers.FirstOrDefault(t => t.Id == request.TeacherId)
             ?? throw new MasterDataException("Bitte eine Lehrkraft wählen.");
-        var schoolClass = school.Classes.FirstOrDefault(c => c.Name == request.ClassName)
-            ?? throw new MasterDataException($"Die Klasse '{request.ClassName}' ist nicht vorhanden.");
+        var wanted = request.ClassNames.Distinct(StringComparer.Ordinal).ToHashSet();
+        if (wanted.Count == 0) throw new MasterDataException("Bitte mindestens eine Klasse wählen.");
+        var missing = wanted.FirstOrDefault(n => school.Classes.All(c => c.Name != n));
+        if (missing is not null) throw new MasterDataException($"Die Klasse '{missing}' ist nicht vorhanden.");
+        var classes = school.Classes.Where(c => wanted.Contains(c.Name)).ToList(); // Reihenfolge der Schuldatei
         if (request.AllowedFields.Count == 0)
             throw new MasterDataException("Bitte mindestens einen Bereich freigeben.");
         var invalid = request.AllowedFields.FirstOrDefault(p => !FieldScope.IsValidPattern(p));
@@ -34,11 +37,11 @@ public static class AssignmentFactory
         var password = request.Password ?? GeneratePassword();
         EnvelopeCodec.ValidatePassword(password);
 
-        var students = school.Students.Where(s => s.ClassName == schoolClass.Name).ToList();
+        var students = school.Students.Where(s => wanted.Contains(s.ClassName)).ToList();
         if (request.StudentIds is { Count: > 0 } ids)
         {
             if (ids.Except(students.Select(s => s.Id)).Any())
-                throw new MasterDataException("Einige Schüler gehören nicht zu dieser Klasse.");
+                throw new MasterDataException("Einige Schüler gehören nicht zu den gewählten Klassen.");
             students = students.Where(s => ids.Contains(s.Id)).ToList();
         }
         if (students.Count == 0) throw new MasterDataException("Es ist kein Schüler ausgewählt.");
@@ -51,7 +54,8 @@ public static class AssignmentFactory
             AssignmentId = Guid.NewGuid(),
             TeacherId = teacher.Id,
             TeacherName = teacher.DisplayName,
-            ClassName = schoolClass.Name,
+            ClassName = string.Join(", ", classes.Select(c => c.Name)),
+            ClassNames = classes.Select(c => c.Name).ToList(),
             Label = label,
             StudentIds = students.Select(s => s.Id).ToList(),
             AllowedFields = allowed,
@@ -70,7 +74,7 @@ public static class AssignmentFactory
 
         school.Assignments.Add(issued);
         school.Audit.Add(new AuditEntry(now, "Auftrag erstellt",
-            $"{teacher.DisplayName} · {schoolClass.Name} · {label} · {students.Count} Schüler · {issued.AssignmentId:N}"));
+            $"{teacher.DisplayName} · {issued.ClassName} · {label} · {students.Count} Schüler · {issued.AssignmentId:N}"));
         return Build(school, issued);
     }
 
@@ -82,7 +86,8 @@ public static class AssignmentFactory
     {
         var ids = issued.StudentIds.ToHashSet();
         var students = school.Students.Where(s => ids.Contains(s.Id)).ToList();
-        var grade = school.Classes.FirstOrDefault(c => c.Name == issued.ClassName)?.Grade ?? 0;
+        var classNames = issued.Classes().ToList();
+        var grades = school.Classes.Where(c => classNames.Contains(c.Name)).ToDictionary(c => c.Name, c => c.Grade);
         return new AssignmentFile
         {
             AssignmentId = issued.AssignmentId,
@@ -92,12 +97,14 @@ public static class AssignmentFactory
             TeacherId = issued.TeacherId,
             TeacherName = issued.TeacherName,
             ClassName = issued.ClassName,
+            ClassNames = classNames,
+            ClassGrades = grades,
             Label = issued.Label,
             IssuedUtc = issued.IssuedUtc,
             ExpiresUtc = issued.ExpiresUtc,
             AllowedFields = [.. issued.AllowedFields],
             Students = students,
-            Catalogs = CatalogsFor(school, grade, students, issued.AllowedFields),
+            Catalogs = CatalogsFor(school, students, issued.AllowedFields),
             Reports = students.Select(s => new StudentReport
             {
                 StudentId = s.Id,
@@ -109,17 +116,20 @@ public static class AssignmentFactory
     }
 
     public static string FileName(AssignmentFile a) =>
-        $"Auftrag_{Safe(a.ClassName)}_{Safe(a.Label)}_{Safe(a.TeacherName)}{EnvelopeCodec.Extension(EnvelopeKind.Assignment)}";
+        $"Auftrag_{ClassPart(a.ClassNames, a.ClassName)}_{Safe(a.Label)}_{Safe(a.TeacherName)}{EnvelopeCodec.Extension(EnvelopeKind.Assignment)}";
+
+    /// <summary>Klassen für Dateinamen: „3a“ oder „3a+3b“.</summary>
+    public static string ClassPart(IReadOnlyCollection<string> classNames, string fallback) =>
+        classNames.Count > 0 ? string.Join("+", classNames.Select(Safe)) : Safe(fallback);
 
     /// <summary>Andere offene Aufträge, die dieselben Schüler und Felder abdecken (führt später zu Konflikten).</summary>
-    public static List<AssignmentOverlap> FindOverlaps(SchoolFile school, string className, IReadOnlyCollection<Guid> studentIds, IReadOnlyCollection<string> allowed)
+    public static List<AssignmentOverlap> FindOverlaps(SchoolFile school, IReadOnlyCollection<string> classNames, IReadOnlyCollection<Guid> studentIds, IReadOnlyCollection<string> allowed)
     {
-        var cls = school.Classes.FirstOrDefault(c => c.Name == className);
-        if (cls is null) return [];
         var students = school.Students.Where(s => studentIds.Contains(s.Id)).ToList();
-        var keys = CatalogsFor(school, cls.Grade, students, allowed).SelectMany(c => c.FieldKeys()).Where(k => FieldScope.IsAllowed(k, allowed)).ToHashSet();
+        if (students.Count == 0) return [];
+        var keys = CatalogsFor(school, students, allowed).SelectMany(c => c.FieldKeys()).Where(k => FieldScope.IsAllowed(k, allowed)).ToHashSet();
         var result = new List<AssignmentOverlap>();
-        foreach (var other in school.Assignments.Where(a => !a.Revoked && a.ClassName == className))
+        foreach (var other in school.Assignments.Where(a => !a.Revoked && a.Classes().Any(classNames.Contains)))
         {
             var sharedStudents = other.StudentIds.Count(studentIds.Contains);
             var sharedFields = keys.Count(k => FieldScope.IsAllowed(k, other.AllowedFields));
@@ -137,24 +147,21 @@ public static class AssignmentFactory
         return $"{chars[..4]}-{chars[4..8]}-{chars[8..12]}-{chars[12..]}";
     }
 
-    /// <summary>Kataloge der beteiligten Bildungsgänge, gekürzt auf freigegebene Abschnitte und Kriterien.</summary>
-    internal static List<Catalog> CatalogsFor(SchoolFile school, int grade, List<Student> students, IReadOnlyCollection<string> allowed)
+    /// <summary>
+    /// Kataloge der beteiligten Jahrgänge und Bildungsgänge, gekürzt auf freigegebene Abschnitte und Kriterien.
+    /// </summary>
+    internal static List<Catalog> CatalogsFor(SchoolFile school, List<Student> students, IReadOnlyCollection<string> allowed)
     {
-        var tracks = students.Select(s => s.Track).Distinct().ToHashSet();
+        var gradeOf = school.Classes.ToDictionary(c => c.Name, c => c.Grade);
+        var needed = students.Select(s => (Grade: gradeOf.GetValueOrDefault(s.ClassName), s.Track)).ToHashSet();
         return school.Catalogs
-            .Where(c => c.Grade == grade && tracks.Contains(c.Track))
+            .Where(c => needed.Contains((c.Grade, c.Track)))
             .Select(c => new Catalog
             {
                 Id = c.Id, Title = c.Title, Grade = c.Grade, Track = c.Track, RatingScale = [.. c.RatingScale],
                 Sections = c.Sections
                     .Where(s => s.FieldKeys().Any(k => FieldScope.IsAllowed(k, allowed)))
-                    .Select(s => new CatalogSection
-                    {
-                        Key = s.Key, Title = s.Title, Subject = s.Subject, Kind = s.Kind, NextItemNumber = s.NextItemNumber,
-                        Items = s.Kind == FieldKind.Rating
-                            ? s.Items.Where(i => FieldScope.IsAllowed(s.ItemKey(i.Id), allowed)).Select(i => new CatalogItem { Id = i.Id, Text = i.Text }).ToList()
-                            : s.Items.Select(i => new CatalogItem { Id = i.Id, Text = i.Text }).ToList(),
-                    })
+                    .Select(s => s.Kind == FieldKind.Rating ? s.Copy(i => FieldScope.IsAllowed(s.ItemKey(i.Id), allowed)) : s.Copy())
                     .ToList(),
             })
             .Where(c => c.Sections.Count > 0)
