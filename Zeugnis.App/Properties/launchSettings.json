@@ -1,6 +1,12 @@
 {
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
+    "Visual Studio": {
+      "commandName": "Executable",
+      "executablePath": "dotnet",
+      "commandLineArgs": "watch run --launch-profile http --non-interactive",
+      "workingDirectory": "$(ProjectDir)"
+    },
     "http": {
       "commandName": "Project",
       "dotnetRunMessages": true,
