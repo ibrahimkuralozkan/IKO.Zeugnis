@@ -47,12 +47,17 @@ public static class CatalogEditor
         Log(f, now, "Katalog entfernt", catalog.Title);
     }
 
-    public static void SetTitle(SchoolFile f, string id, string title)
+    public static void SetTitle(SchoolFile f, string id, string title, DateTimeOffset? now = null)
     {
-        ById(f, id).Title = Text(title, "Bitte einen Titel angeben.", 80);
+        var catalog = ById(f, id);
+        var clean = Text(title, "Bitte einen Titel angeben.", 80);
+        if (catalog.Title == clean) return;
+        var old = catalog.Title;
+        catalog.Title = clean;
+        if (now is { } timestamp) Log(f, timestamp, "Katalog umbenannt", $"{old} → {clean}");
     }
 
-    public static void SetScale(SchoolFile f, string id, IReadOnlyList<string> labels)
+    public static void SetScale(SchoolFile f, string id, IReadOnlyList<string> labels, DateTimeOffset? now = null)
     {
         var clean = labels.Select(l => l?.Trim() ?? "").ToList();
         if (clean.Count is < 2 or > MaxScaleSteps)
@@ -67,7 +72,11 @@ public static class CatalogEditor
             if (used > 0)
                 throw new MasterDataException($"{used} Bewertungen nutzen eine Stufe, die wegfallen würde.");
         }
+        if (catalog.RatingScale.SequenceEqual(clean)) return;
+        var old = string.Join(" · ", catalog.RatingScale);
         catalog.RatingScale = clean;
+        if (now is { } timestamp) Log(f, timestamp, "Bewertungsskala geändert",
+            $"{catalog.Title}: {old} → {string.Join(" · ", clean)}");
     }
 
     // ---------- Bereiche ----------
@@ -88,17 +97,28 @@ public static class CatalogEditor
         return section;
     }
 
-    public static void UpdateSection(SchoolFile f, string catalogId, FieldKind kind, string key, string title, string subject)
-    {
-        var section = Section(f, catalogId, kind, key);
-        section.Title = Text(title, "Bitte einen Titel für den Bereich angeben.", 80);
-        section.Subject = (subject ?? "").Trim();
-    }
-
-    public static void MoveSection(SchoolFile f, string catalogId, FieldKind kind, string key, int delta)
+    public static void UpdateSection(SchoolFile f, string catalogId, FieldKind kind, string key, string title, string subject,
+        DateTimeOffset? now = null)
     {
         var catalog = ById(f, catalogId);
-        Move(catalog.Sections, Section(f, catalogId, kind, key), delta);
+        var section = Section(f, catalogId, kind, key);
+        var cleanTitle = Text(title, "Bitte einen Titel für den Bereich angeben.", 80);
+        var cleanSubject = (subject ?? "").Trim();
+        if (section.Title == cleanTitle && section.Subject == cleanSubject) return;
+        var old = $"{section.Title} [{section.Subject}]";
+        section.Title = cleanTitle;
+        section.Subject = cleanSubject;
+        if (now is { } timestamp) Log(f, timestamp, "Bereich geändert",
+            $"{catalog.Title}: {old} → {section.Title} [{section.Subject}]");
+    }
+
+    public static void MoveSection(SchoolFile f, string catalogId, FieldKind kind, string key, int delta,
+        DateTimeOffset? now = null)
+    {
+        var catalog = ById(f, catalogId);
+        var section = Section(f, catalogId, kind, key);
+        if (Move(catalog.Sections, section, delta) && now is { } timestamp)
+            Log(f, timestamp, "Bereich verschoben", $"{catalog.Title} · {section.Title}");
     }
 
     /// <summary>Anzahl eingetragener Werte, die beim Löschen des Bereichs verloren gingen.</summary>
@@ -117,8 +137,10 @@ public static class CatalogEditor
 
     // ---------- Kriterien / Auswahlmöglichkeiten ----------
 
-    public static CatalogItem AddItem(SchoolFile f, string catalogId, FieldKind kind, string key, string text)
+    public static CatalogItem AddItem(SchoolFile f, string catalogId, FieldKind kind, string key, string text,
+        DateTimeOffset? now = null)
     {
+        var catalog = ById(f, catalogId);
         var section = Section(f, catalogId, kind, key);
         RequireItems(section);
         var number = Math.Max(section.NextItemNumber,
@@ -126,18 +148,33 @@ public static class CatalogEditor
         var item = new CatalogItem { Id = number.ToString("00", CultureInfo.InvariantCulture), Text = Text(text, "Bitte einen Text angeben.", 400) };
         section.Items.Add(item);
         section.NextItemNumber = number + 1;
+        if (now is { } timestamp) Log(f, timestamp, "Eintrag angelegt",
+            $"{catalog.Title} · {section.Title} · {item.Text}");
         return item;
     }
 
-    public static void UpdateItem(SchoolFile f, string catalogId, FieldKind kind, string key, string itemId, string text)
+    public static void UpdateItem(SchoolFile f, string catalogId, FieldKind kind, string key, string itemId, string text,
+        DateTimeOffset? now = null)
     {
-        Item(Section(f, catalogId, kind, key), itemId).Text = Text(text, "Bitte einen Text angeben.", 400);
+        var catalog = ById(f, catalogId);
+        var section = Section(f, catalogId, kind, key);
+        var item = Item(section, itemId);
+        var clean = Text(text, "Bitte einen Text angeben.", 400);
+        if (item.Text == clean) return;
+        var old = item.Text;
+        item.Text = clean;
+        if (now is { } timestamp) Log(f, timestamp, "Eintrag geändert",
+            $"{catalog.Title} · {section.Title}: {old} → {clean}");
     }
 
-    public static void MoveItem(SchoolFile f, string catalogId, FieldKind kind, string key, string itemId, int delta)
+    public static void MoveItem(SchoolFile f, string catalogId, FieldKind kind, string key, string itemId, int delta,
+        DateTimeOffset? now = null)
     {
+        var catalog = ById(f, catalogId);
         var section = Section(f, catalogId, kind, key);
-        Move(section.Items, Item(section, itemId), delta);
+        var item = Item(section, itemId);
+        if (Move(section.Items, item, delta) && now is { } timestamp)
+            Log(f, timestamp, "Eintrag verschoben", $"{catalog.Title} · {section.Title} · {item.Text}");
     }
 
     public static int CountItemValues(SchoolFile f, string catalogId, FieldKind kind, string key, string itemId)
@@ -257,13 +294,14 @@ public static class CatalogEditor
             throw new MasterDataException("Dieser Bereich hat keine Einträge.");
     }
 
-    private static void Move<T>(List<T> list, T item, int delta)
+    private static bool Move<T>(List<T> list, T item, int delta)
     {
         var index = list.IndexOf(item);
         var target = Math.Clamp(index + delta, 0, list.Count - 1);
-        if (index < 0 || target == index) return;
+        if (index < 0 || target == index) return false;
         list.RemoveAt(index);
         list.Insert(target, item);
+        return true;
     }
 
     /// <summary>Schüler, deren Werte zu diesem Katalog gehören (gleiche Jahrgangsstufe und gleicher Bildungsgang).</summary>

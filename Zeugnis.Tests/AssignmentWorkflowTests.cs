@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Zeugnis.Domain;
 using Zeugnis.Exchange;
 
@@ -59,6 +61,7 @@ public class AssignmentWorkflowTests
         var teacherCopy = await _codec.OpenAsync<AssignmentFile>(teacherBytes, EnvelopeKind.Assignment, issued.Password);
         var ctx = GradingContext.ForAssignment(teacherCopy);
         ctx.Set(ctx.Students[0], "g:Sport", "1", TestData.Now);
+        var teacherEntry = Assert.Single(teacherCopy.TeacherAudit);
         var responseBytes = await _codec.SealAsync(ResponseBuilder.Create(teacherCopy, TestData.Now), EnvelopeKind.Response,
             issued.Password, ResponseBuilder.Reference(teacherCopy.AssignmentId));
 
@@ -71,6 +74,38 @@ public class AssignmentWorkflowTests
         var record = Assert.Single(issued.Returns);
         Assert.Equal(loaded.Response.ResponseId, record.ResponseId);
         Assert.Equal(1, record.Applied);
+        var importedAudit = Assert.Single(issued.TeacherAudit);
+        Assert.Equal(teacherEntry.EntryId, importedAudit.EntryId);
+        Assert.Equal("g:Sport", importedAudit.FieldKey);
+        Assert.Equal("Test, Anna", importedAudit.StudentName);
+        Assert.DoesNotContain(school.Audit, entry =>
+            entry.Action == "Zeugnisfeld geändert" && entry.StudentId == importedAudit.StudentId);
+    }
+
+    [Fact]
+    public void Response_RejectsTeacherAuditOutsideAssignmentScope()
+    {
+        var school = TestData.School();
+        var assignment = TestData.SportAssignment(school);
+        var response = ResponseBuilder.Create(assignment, TestData.Now);
+        var student = assignment.Students[0];
+        response.TeacherAudit.Add(new FieldAuditEntry(
+            Guid.NewGuid(), TestData.Now, student.Id, student.DisplayName, student.ClassName,
+            "t:Allgemein", "Allgemein", "", "eingeschmuggelt", "(leer)", "eingeschmuggelt"));
+
+        Assert.Throws<ExchangeSecurityException>(() => MergeEngine.Preview(school, response, TestData.Now));
+    }
+
+    [Fact]
+    public void OlderAssignmentWithoutTeacherAudit_OpensWithEmptyHistory()
+    {
+        var assignment = TestData.SportAssignment(TestData.School());
+        var json = JsonNode.Parse(JsonSerializer.Serialize(assignment, EnvelopeCodec.Json))!.AsObject();
+        Assert.True(json.Remove(nameof(AssignmentFile.TeacherAudit)));
+
+        var reopened = JsonSerializer.Deserialize<AssignmentFile>(json, EnvelopeCodec.Json)!;
+
+        Assert.Empty(reopened.TeacherAudit);
     }
 
     [Fact]

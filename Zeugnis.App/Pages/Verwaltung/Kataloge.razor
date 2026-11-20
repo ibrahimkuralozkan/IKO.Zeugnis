@@ -71,7 +71,7 @@
                     <div class="grow-min">
                         <label class="field">
                             <span>Titel (Klasse @cat.Grade · @Labels.Of(cat.Track))</span>
-                            <input value="@cat.Title" @onchange="e => Change(x => CatalogEditor.SetTitle(x, cat.Id, e.Value?.ToString() ?? string.Empty))" />
+                            <input value="@cat.Title" @onchange="e => Change(x => CatalogEditor.SetTitle(x, cat.Id, e.Value?.ToString() ?? string.Empty, DateTimeOffset.UtcNow))" />
                         </label>
                     </div>
                     <div class="actions align-end">
@@ -145,17 +145,17 @@
                 <section class="card section-card">
                     <div class="section-head">
                         <div class="move">
-                            <button class="icon-btn" disabled="@first" @onclick="() => Change(x => CatalogEditor.MoveSection(x, cat.Id, s.Kind, s.Key, -1))" aria-label="nach oben">▲</button>
-                            <button class="icon-btn" disabled="@last" @onclick="() => Change(x => CatalogEditor.MoveSection(x, cat.Id, s.Kind, s.Key, 1))" aria-label="nach unten">▼</button>
+                            <button class="icon-btn" disabled="@first" @onclick="() => Change(x => CatalogEditor.MoveSection(x, cat.Id, s.Kind, s.Key, -1, DateTimeOffset.UtcNow))" aria-label="nach oben">▲</button>
+                            <button class="icon-btn" disabled="@last" @onclick="() => Change(x => CatalogEditor.MoveSection(x, cat.Id, s.Kind, s.Key, 1, DateTimeOffset.UtcNow))" aria-label="nach unten">▼</button>
                         </div>
                         <div class="section-fields">
                             <input class="title-input" value="@s.Title" aria-label="Titel"
-                                   @onchange="e => Change(x => CatalogEditor.UpdateSection(x, cat.Id, s.Kind, s.Key, e.Value?.ToString() ?? string.Empty, s.Subject))" />
+                                   @onchange="e => Change(x => CatalogEditor.UpdateSection(x, cat.Id, s.Kind, s.Key, e.Value?.ToString() ?? string.Empty, s.Subject, DateTimeOffset.UtcNow))" />
                             <div class="meta">
                                 <span class="badge">@KindLabel(s.Kind)</span>
                                 <label class="inline">Fach
                                     <SubjectSelect @key="@($"{cat.Id}|{s.Kind}|{s.Key}")" Value="@s.Subject" Options="Subjects(f, cat)" Label="Fach"
-                                                   ValueChanged="v => Change(x => CatalogEditor.UpdateSection(x, cat.Id, s.Kind, s.Key, s.Title, v))" />
+                                                   ValueChanged="v => Change(x => CatalogEditor.UpdateSection(x, cat.Id, s.Kind, s.Key, s.Title, v, DateTimeOffset.UtcNow))" />
                                 </label>
                                 <code title="Feldschlüssel – ändert sich nie">@KeyLabel(s)</code>
                                 @if (!string.IsNullOrWhiteSpace(s.VisibleWhen))
@@ -188,18 +188,18 @@
                                 var lastItem = ii == s.Items.Count - 1;
                                 <li>
                                     <div class="move">
-                                        <button class="icon-btn" disabled="@firstItem" @onclick="() => Change(x => CatalogEditor.MoveItem(x, cat.Id, s.Kind, s.Key, item.Id, -1))" aria-label="nach oben">▲</button>
-                                        <button class="icon-btn" disabled="@lastItem" @onclick="() => Change(x => CatalogEditor.MoveItem(x, cat.Id, s.Kind, s.Key, item.Id, 1))" aria-label="nach unten">▼</button>
+                                        <button class="icon-btn" disabled="@firstItem" @onclick="() => Change(x => CatalogEditor.MoveItem(x, cat.Id, s.Kind, s.Key, item.Id, -1, DateTimeOffset.UtcNow))" aria-label="nach oben">▲</button>
+                                        <button class="icon-btn" disabled="@lastItem" @onclick="() => Change(x => CatalogEditor.MoveItem(x, cat.Id, s.Kind, s.Key, item.Id, 1, DateTimeOffset.UtcNow))" aria-label="nach unten">▼</button>
                                     </div>
                                     @if (s.Kind == FieldKind.Rating)
                                     {
                                         <textarea rows="1" class="autogrow" aria-label="Kriterium"
-                                                  @onchange="e => Change(x => CatalogEditor.UpdateItem(x, cat.Id, s.Kind, s.Key, item.Id, e.Value?.ToString() ?? string.Empty))">@item.Text</textarea>
+                                                  @onchange="e => Change(x => CatalogEditor.UpdateItem(x, cat.Id, s.Kind, s.Key, item.Id, e.Value?.ToString() ?? string.Empty, DateTimeOffset.UtcNow))">@item.Text</textarea>
                                     }
                                     else
                                     {
                                         <input value="@item.Text" aria-label="Auswahlmöglichkeit"
-                                               @onchange="e => Change(x => CatalogEditor.UpdateItem(x, cat.Id, s.Kind, s.Key, item.Id, e.Value?.ToString() ?? string.Empty))" />
+                                               @onchange="e => Change(x => CatalogEditor.UpdateItem(x, cat.Id, s.Kind, s.Key, item.Id, e.Value?.ToString() ?? string.Empty, DateTimeOffset.UtcNow))" />
                                         @if (item.ReportText is { } rt)
                                         {
                                             <span class="muted small" title="Text im Zeugnis">Zeugnis: @(rt.Length == 0 ? "(nichts)" : rt)</span>
@@ -351,7 +351,7 @@
 
     private void SaveScale()
     {
-        if (Current is { } c && Change(f => CatalogEditor.SetScale(f, c.Id, _scale), "Skala übernommen."))
+        if (Current is { } c && Change(f => CatalogEditor.SetScale(f, c.Id, _scale, DateTimeOffset.UtcNow), "Skala übernommen."))
             _scaleFor = null;
     }
 
@@ -372,7 +372,7 @@
     {
         if (Current is not { } c) return;
         var slot = ItemSlot(s);
-        if (Change(f => CatalogEditor.AddItem(f, c.Id, s.Kind, s.Key, _newItem.GetValueOrDefault(slot) ?? "")))
+        if (Change(f => CatalogEditor.AddItem(f, c.Id, s.Kind, s.Key, _newItem.GetValueOrDefault(slot) ?? "", DateTimeOffset.UtcNow)))
             _newItem[slot] = "";
     }
 

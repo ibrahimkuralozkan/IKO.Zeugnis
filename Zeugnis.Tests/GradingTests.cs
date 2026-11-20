@@ -21,6 +21,13 @@ public class GradingTests
         Assert.True(ctx.Set(anna, "g:Sport", "2", TestData.Now));
         Assert.True(ctx.Set(anna, "r:Sport.01", "1", TestData.Now));
         Assert.True(ctx.ProgressOf(anna).IsComplete);
+        Assert.Equal(2, assignment.TeacherAudit.Count);
+        var gradeAudit = assignment.TeacherAudit[0];
+        Assert.Equal(anna.Id, gradeAudit.StudentId);
+        Assert.Equal("3a", gradeAudit.ClassName);
+        Assert.Equal("g:Sport", gradeAudit.FieldKey);
+        Assert.Equal("(leer)", gradeAudit.OldDisplay);
+        Assert.Equal("2 – gut", gradeAudit.NewDisplay);
     }
 
     [Fact]
@@ -71,5 +78,12 @@ public class GradingTests
         var value = school.ReportFor(anna.Id).Fields["t:Allgemein"];
         Assert.Equal("Verwaltung", value.ChangedBy);
         Assert.Equal(1, value.Revision);
+        var audit = Assert.Single(school.Audit);
+        Assert.Equal("Zeugnisfeld geändert", audit.Action);
+        Assert.Equal(anna.Id, audit.StudentId);
+        Assert.Equal("3a", audit.ClassName);
+        Assert.Equal("t:Allgemein", audit.FieldKey);
+        Assert.Equal("(leer)", audit.OldDisplay);
+        Assert.Equal("Anna arbeitet sorgfältig.", audit.NewDisplay);
     }
 }

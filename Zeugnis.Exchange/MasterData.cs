@@ -30,9 +30,12 @@ public static class MasterData
         var name = Required(displayName, "Bitte den Namen der Lehrkraft angeben.");
         if (f.Teachers.Any(t => t.Id != id && Same(t.DisplayName, name)))
             throw new MasterDataException($"Die Lehrkraft „{name}“ ist bereits vorhanden.");
-        if (teacher.DisplayName != name) Log(f, now, "Lehrkraft umbenannt", $"{teacher.DisplayName} → {name}");
+        var changes = new List<string>();
+        if (teacher.DisplayName != name) changes.Add($"Name: {teacher.DisplayName} → {name}");
+        if (teacher.Gender != gender) changes.Add($"Geschlecht: {teacher.Gender} → {gender}");
         teacher.DisplayName = name;
         teacher.Gender = gender;
+        if (changes.Count > 0) Log(f, now, "Lehrkraft geändert", string.Join(" · ", changes));
     }
 
     public static void RemoveTeacher(SchoolFile f, Guid id, DateTimeOffset now)
@@ -96,6 +99,9 @@ public static class MasterData
         if (grade != cls.Grade && f.Assignments.Any(a => a.Classes().Contains(cls.Name) && !a.Revoked))
             throw new MasterDataException("Die Jahrgangsstufe kann nicht geändert werden, solange Arbeitsaufträge dieser Klasse offen sind.");
 
+        var oldName = cls.Name;
+        var oldGrade = cls.Grade;
+        var oldTeacher = cls.ClassTeacherId;
         if (cls.Name != clean)
         {
             foreach (var s in f.Students.Where(s => s.ClassName == cls.Name)) s.ClassName = clean;
@@ -104,17 +110,22 @@ public static class MasterData
                 a.ClassNames = a.Classes().Select(n => n == cls.Name ? clean : n).ToList();
                 a.ClassName = string.Join(", ", a.ClassNames);
             }
-            Log(f, now, "Klasse umbenannt", $"{cls.Name} → {clean}");
             cls.Name = clean;
             f.Classes.Sort((a, b) => NaturalCompare(a.Name, b.Name));
         }
         cls.Grade = grade;
         cls.ClassTeacherId = classTeacherId;
+        var changes = new List<string>();
+        if (oldName != cls.Name) changes.Add($"Name: {oldName} → {cls.Name}");
+        if (oldGrade != cls.Grade) changes.Add($"Jahrgang: {oldGrade} → {cls.Grade}");
+        if (oldTeacher != cls.ClassTeacherId)
+            changes.Add($"Klassenlehrkraft: {TeacherName(f, oldTeacher)} → {TeacherName(f, cls.ClassTeacherId)}");
+        if (changes.Count > 0) Log(f, now, "Klasse geändert", string.Join(" · ", changes));
     }
 
     /// <summary>Zeugnisangaben der Klasse: Konferenz, Ausgabedatum, Wiederbeginn des Unterrichts.</summary>
     public static void SetClassReportDates(SchoolFile f, string name, DateOnly? conference, DateOnly? report,
-        DateOnly? resumption, string? resumptionTime)
+        DateOnly? resumption, string? resumptionTime, DateTimeOffset? now = null)
     {
         var cls = ClassByName(f, name);
         var time = (resumptionTime ?? "").Trim();
@@ -126,10 +137,23 @@ public static class MasterData
                 throw new MasterDataException("Bitte die Uhrzeit im Format 08:00 angeben.");
             time = parsed.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture);
         }
+        var changes = new List<string>();
+        Add("Konferenzdatum", cls.ConferenceDate, conference);
+        Add("Zeugnisdatum", cls.ReportDate, report);
+        Add("Wiederbeginn", cls.ResumptionDate, resumption);
+        if (cls.ResumptionTime != time)
+            changes.Add($"Uhrzeit: {DisplayText(cls.ResumptionTime)} → {DisplayText(time)}");
         cls.ConferenceDate = conference;
         cls.ReportDate = report;
         cls.ResumptionDate = resumption;
         cls.ResumptionTime = time;
+        if (changes.Count > 0 && now is { } timestamp)
+            Log(f, timestamp, "Zeugnisangaben geändert", $"{cls.Name} · {string.Join(" · ", changes)}");
+
+        void Add(string label, DateOnly? before, DateOnly? after)
+        {
+            if (before != after) changes.Add($"{label}: {DisplayDate(before)} → {DisplayDate(after)}");
+        }
     }
 
     public static void RemoveClass(SchoolFile f, string name, DateTimeOffset now)
@@ -156,11 +180,29 @@ public static class MasterData
     public static void UpdateStudent(SchoolFile f, Guid id, Student input, DateTimeOffset now)
     {
         var student = StudentById(f, id);
+        var old = new Student
+        {
+            FirstName = student.FirstName,
+            LastName = student.LastName,
+            DateOfBirth = student.DateOfBirth,
+            Gender = student.Gender,
+            Track = student.Track,
+            ClassName = student.ClassName,
+        };
         var oldClass = student.ClassName;
         if (input.ClassName != oldClass && f.Assignments.Any(a => !a.Revoked && a.StudentIds.Contains(id)))
             throw new MasterDataException("Der Schüler ist in einem offenen Arbeitsauftrag enthalten und kann nicht die Klasse wechseln.");
         Apply(f, student, input);
-        if (oldClass != student.ClassName) Log(f, now, "Schüler versetzt", $"{student.DisplayName} · {oldClass} → {student.ClassName}");
+        var changes = new List<string>();
+        if (old.FirstName != student.FirstName) changes.Add($"Vorname: {old.FirstName} → {student.FirstName}");
+        if (old.LastName != student.LastName) changes.Add($"Nachname: {old.LastName} → {student.LastName}");
+        if (old.DateOfBirth != student.DateOfBirth)
+            changes.Add($"Geburtsdatum: {DisplayDate(old.DateOfBirth)} → {DisplayDate(student.DateOfBirth)}");
+        if (old.Gender != student.Gender) changes.Add($"Geschlecht: {old.Gender} → {student.Gender}");
+        if (old.Track != student.Track) changes.Add($"Bildungsgang: {old.Track} → {student.Track}");
+        if (old.ClassName != student.ClassName) changes.Add($"Klasse: {old.ClassName} → {student.ClassName}");
+        if (changes.Count > 0)
+            Log(f, now, "Schüler geändert", $"{student.DisplayName} · {string.Join(" · ", changes)}");
     }
 
     /// <summary>Entfernt den Schüler samt Zeugniswerten.</summary>
@@ -256,6 +298,12 @@ public static class MasterData
         var (nb, rb) = Key(b);
         return na != nb ? na.CompareTo(nb) : string.Compare(ra, rb, StringComparison.CurrentCultureIgnoreCase);
     }
+
+    private static string TeacherName(SchoolFile f, Guid? id) =>
+        id is { } teacherId ? f.Teachers.FirstOrDefault(t => t.Id == teacherId)?.DisplayName ?? "(unbekannt)" : "(keine)";
+
+    private static string DisplayDate(DateOnly? value) => value?.ToString("dd.MM.yyyy") ?? "(leer)";
+    private static string DisplayText(string value) => value.Length == 0 ? "(leer)" : value;
 
     private static void Log(SchoolFile f, DateTimeOffset now, string action, string detail) =>
         f.Audit.Add(new AuditEntry(now, action, detail));

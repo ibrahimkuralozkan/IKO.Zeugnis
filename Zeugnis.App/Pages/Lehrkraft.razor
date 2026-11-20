@@ -75,6 +75,27 @@ else
 
     <GradingView Context="ctx" OnChanged="Session.MarkChanged" />
 
+    <details class="card">
+        <summary>Meine Änderungen (@a.TeacherAudit.Count)</summary>
+        @if (a.TeacherAudit.Count == 0)
+        {
+            <p class="muted">Noch keine Änderungen.</p>
+        }
+        else
+        {
+            <ul class="audit">
+                @foreach (var entry in a.TeacherAudit.AsEnumerable().Reverse())
+                {
+                    <li>
+                        <time>@entry.Utc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</time>
+                        <strong>@entry.StudentName</strong> · @entry.ClassName · @entry.FieldLabel:
+                        @entry.OldDisplay → @entry.NewDisplay
+                    </li>
+                }
+            </ul>
+        }
+    </details>
+
     <p class="muted small">
         Zwischenstände werden verschlüsselt in diesem Browser gesichert (nur mit dem Auftragskennwort lesbar)
         und beim nächsten Öffnen desselben Auftrags wiederhergestellt.

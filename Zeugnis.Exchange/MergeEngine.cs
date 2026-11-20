@@ -82,6 +82,7 @@ public static class MergeEngine
             if (bad is not null)
                 throw new ExchangeSecurityException($"Die Rückgabe enthält ein nicht freigegebenes Feld ({bad}).");
         }
+        ValidateTeacherAudit(assignment, response.TeacherAudit);
 
         var preview = new MergePreview { Response = response, Assignment = assignment };
         foreach (var (studentId, fields) in response.Values)
@@ -138,6 +139,7 @@ public static class MergeEngine
             if (bad is not null)
                 throw new ExchangeSecurityException($"Die Rückgabe enthält ein nicht freigegebenes Feld ({bad}).");
         }
+        ValidateTeacherAudit(assignment, preview.Response.TeacherAudit);
 
         foreach (var item in preview.Items)
         {
@@ -155,6 +157,7 @@ public static class MergeEngine
             if (item.Outcome == MergeOutcome.Conflict &&
                 choices.GetValueOrDefault((item.StudentId, item.FieldKey), ConflictChoice.KeepSchool) == ConflictChoice.KeepSchool)
             {
+                LogConflictChoice(school, item, keepSchool: true, now);
                 kept++;
                 continue;
             }
@@ -164,7 +167,27 @@ public static class MergeEngine
             if (!assignment.Baseline.TryGetValue(item.StudentId, out var baseline))
                 assignment.Baseline[item.StudentId] = baseline = new(StringComparer.Ordinal);
             baseline[item.FieldKey] = report.Fields[item.FieldKey];
-            if (item.Outcome == MergeOutcome.Conflict) taken++; else applied++;
+            if (item.Outcome == MergeOutcome.Conflict)
+            {
+                LogConflictChoice(school, item, keepSchool: false, now);
+                taken++;
+            }
+            else applied++;
+        }
+
+        var knownAuditIds = assignment.TeacherAudit.Select(entry => entry.EntryId).ToHashSet();
+        foreach (var entry in preview.Response.TeacherAudit.Where(entry => knownAuditIds.Add(entry.EntryId)))
+        {
+            var student = school.Students.Single(s => s.Id == entry.StudentId);
+            var (field, format) = FieldLabels.Describe(school, entry.StudentId, entry.FieldKey);
+            assignment.TeacherAudit.Add(entry with
+            {
+                StudentName = student.DisplayName,
+                ClassName = student.ClassName,
+                FieldLabel = field,
+                OldDisplay = format(entry.OldValue),
+                NewDisplay = format(entry.NewValue),
+            });
         }
 
         school.ProcessedResponseIds.Add(preview.Response.ResponseId);
@@ -174,5 +197,44 @@ public static class MergeEngine
             $"{by} · {assignment.ClassName} · {assignment.Label} · {applied} übernommen, " +
             $"{taken + kept} Konflikte ({taken} Lehrkraft / {kept} Verwaltung) · {preview.Response.ResponseId:N}"));
         return new MergeResult(applied, taken, kept, preview.UnchangedCount);
+    }
+
+    private static void ValidateTeacherAudit(IssuedAssignment assignment, IReadOnlyCollection<FieldAuditEntry> entries)
+    {
+        if (entries.Any(entry => entry.EntryId == Guid.Empty))
+            throw new ExchangeSecurityException("Das Lehrkraftprotokoll enthält einen ungültigen Eintrag.");
+        if (entries.Select(entry => entry.EntryId).Distinct().Count() != entries.Count)
+            throw new ExchangeSecurityException("Das Lehrkraftprotokoll enthält doppelte Einträge.");
+        var allowedStudents = assignment.StudentIds.ToHashSet();
+        var bad = entries.FirstOrDefault(entry =>
+            !allowedStudents.Contains(entry.StudentId) ||
+            !FieldKey.TryParse(entry.FieldKey, out _) ||
+            !FieldScope.IsAllowed(entry.FieldKey, assignment.AllowedFields));
+        if (bad is not null)
+            throw new ExchangeSecurityException("Das Lehrkraftprotokoll enthält eine nicht freigegebene Änderung.");
+    }
+
+    private static void LogConflictChoice(SchoolFile school, MergeItem item, bool keepSchool, DateTimeOffset now)
+    {
+        var (field, format) = FieldLabels.Describe(school, item.StudentId, item.FieldKey);
+        var student = school.Students.FirstOrDefault(s => s.Id == item.StudentId);
+        var schoolDisplay = format(item.SchoolValue);
+        var incomingDisplay = format(item.IncomingValue);
+        school.Audit.Add(new AuditEntry(
+            now,
+            "Konflikt entschieden",
+            $"{student?.ClassName ?? ""} · {item.StudentName} · {field}: " +
+            (keepSchool
+                ? $"Verwaltung behalten ({schoolDisplay}), Lehrkraft verworfen ({incomingDisplay})"
+                : $"Lehrkraft übernommen ({incomingDisplay}), Verwaltung ersetzt ({schoolDisplay})"),
+            item.StudentId,
+            item.StudentName,
+            student?.ClassName,
+            item.FieldKey,
+            field,
+            item.SchoolValue,
+            item.IncomingValue,
+            schoolDisplay,
+            incomingDisplay));
     }
 }

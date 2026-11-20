@@ -39,10 +39,31 @@
     private void Save() => Change(f =>
     {
         if (string.IsNullOrWhiteSpace(_info.Name)) throw new MasterDataException("Bitte den Namen der Schule angeben.");
-        f.School = new SchoolInfo
+        var updated = new SchoolInfo
         {
             Name = _info.Name.Trim(), AddressLine1 = _info.AddressLine1.Trim(), AddressLine2 = _info.AddressLine2.Trim(),
             Town = _info.Town.Trim(), Phone = _info.Phone.Trim(),
         };
+        var changes = SchoolChanges(f.School, updated);
+        if (changes.Count == 0) return;
+        f.School = updated;
+        f.Audit.Add(new AuditEntry(DateTimeOffset.UtcNow, "Schulangaben geändert", string.Join(" · ", changes)));
     }, "Angaben übernommen. Zum Sichern „Speichern“ wählen.");
+
+    private static List<string> SchoolChanges(SchoolInfo old, SchoolInfo updated)
+    {
+        var changes = new List<string>();
+        Add("Name", old.Name, updated.Name);
+        Add("Anschrift 1", old.AddressLine1, updated.AddressLine1);
+        Add("Anschrift 2", old.AddressLine2, updated.AddressLine2);
+        Add("Ort", old.Town, updated.Town);
+        Add("Telefon", old.Phone, updated.Phone);
+        return changes;
+
+        void Add(string label, string before, string after)
+        {
+            if (before != after) changes.Add($"{label}: {Display(before)} → {Display(after)}");
+        }
+        static string Display(string value) => value.Length == 0 ? "(leer)" : value;
+    }
 }

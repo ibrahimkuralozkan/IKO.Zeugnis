@@ -19,19 +19,22 @@ public sealed class GradingContext
 {
     private readonly Func<Student, Catalog?> _catalogFor;
     private readonly Func<Guid, StudentReport> _reportFor;
+    private readonly Action<FieldAuditEntry>? _onFieldChanged;
 
     public GradingContext(
         IReadOnlyList<Student> students,
         Func<Student, Catalog?> catalogFor,
         Func<Guid, StudentReport> reportFor,
         IReadOnlyList<string>? allowedFields,
-        string editorName)
+        string editorName,
+        Action<FieldAuditEntry>? onFieldChanged = null)
     {
         Students = students;
         _catalogFor = catalogFor;
         _reportFor = reportFor;
         AllowedFields = allowedFields;
         EditorName = editorName;
+        _onFieldChanged = onFieldChanged;
     }
 
     public IReadOnlyList<Student> Students { get; }
@@ -88,8 +91,52 @@ public sealed class GradingContext
     public bool Set(Student s, string key, string value, DateTimeOffset now)
     {
         if (!IsAllowed(key) || !Students.Contains(s)) return false;
-        return ReportFor(s).Set(key, value, EditorName, now);
+        var report = ReportFor(s);
+        var oldValue = report.Get(key) ?? "";
+        if (!report.Set(key, value, EditorName, now)) return false;
+        _onFieldChanged?.Invoke(AuditEntry(s, key, oldValue, value, now));
+        return true;
     }
+
+    private FieldAuditEntry AuditEntry(Student student, string key, string oldValue, string newValue, DateTimeOffset now)
+    {
+        var (label, format) = Describe(student, key);
+        return new FieldAuditEntry(
+            Guid.NewGuid(), now, student.Id, student.DisplayName, student.ClassName,
+            key, label, oldValue, newValue, format(oldValue), format(newValue));
+    }
+
+    private (string Label, Func<string?, string> Format) Describe(Student student, string key)
+    {
+        var catalog = CatalogFor(student);
+        if (!FieldKey.TryParse(key, out var fieldKey) || catalog is null)
+            return (key, Empty);
+        if (fieldKey.Kind == FieldKind.Rating)
+        {
+            var dot = fieldKey.Path.LastIndexOf('.');
+            var section = dot < 0 ? null : catalog.Sections.FirstOrDefault(s =>
+                s.Kind == FieldKind.Rating && s.Key == fieldKey.Path[..dot]);
+            var item = dot < 0 ? null : section?.Items.FirstOrDefault(i => i.Id == fieldKey.Path[(dot + 1)..]);
+            return ($"{section?.Title ?? fieldKey.Path}: {item?.Text ?? key}", value =>
+                int.TryParse(value, out var position) && position >= 1 && position <= catalog.RatingScale.Count
+                    ? catalog.RatingScale[position - 1]
+                    : Empty(value));
+        }
+        var matching = catalog.Sections.FirstOrDefault(s => s.Kind == fieldKey.Kind && s.Key == fieldKey.Path);
+        var title = matching?.Title ?? fieldKey.Path;
+        return fieldKey.Kind switch
+        {
+            FieldKind.Grade => ($"{title} (Note)", value =>
+                string.IsNullOrEmpty(value) ? "(leer)" : $"{value} – {ReportText.GradeWord(value)}"),
+            FieldKind.Selection => (title, value =>
+                matching?.Items.FirstOrDefault(i => i.Id == value)?.Text ?? Empty(value)),
+            FieldKind.Date => (title, value =>
+                string.IsNullOrEmpty(value) ? "(leer)" : ReportText.DateText(value)),
+            _ => (title, Empty),
+        };
+    }
+
+    private static string Empty(string? value) => string.IsNullOrEmpty(value) ? "(leer)" : value;
 
     public Progress ProgressOf(Student s)
     {
@@ -123,7 +170,8 @@ public sealed class GradingContext
                 return r;
             },
             a.AllowedFields,
-            a.TeacherName)
+            a.TeacherName,
+            a.TeacherAudit.Add)
         { Term = a.Term };
     }
 
@@ -136,7 +184,20 @@ public sealed class GradingContext
             s => CatalogEditor.For(f, cls.Grade, s.Track),
             f.ReportFor,
             null,
-            editorName)
+            editorName,
+            entry => f.Audit.Add(new AuditEntry(
+                entry.Utc,
+                "Zeugnisfeld geändert",
+                $"{entry.ClassName} · {entry.StudentName} · {entry.FieldLabel}: {entry.OldDisplay} → {entry.NewDisplay}",
+                entry.StudentId,
+                entry.StudentName,
+                entry.ClassName,
+                entry.FieldKey,
+                entry.FieldLabel,
+                entry.OldValue,
+                entry.NewValue,
+                entry.OldDisplay,
+                entry.NewDisplay)))
         { Term = f.Term };
     }
 }

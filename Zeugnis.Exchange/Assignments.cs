@@ -124,6 +124,7 @@ public static class AssignmentFactory
             AllowedFields = [.. issued.AllowedFields],
             Students = students,
             Catalogs = CatalogsFor(school, students, issued.AllowedFields),
+            TeacherAudit = [.. issued.TeacherAudit],
             Reports = students.Select(s => new StudentReport
             {
                 StudentId = s.Id,
@@ -212,6 +213,7 @@ public static class ResponseBuilder
             TeacherId = assignment.TeacherId,
             CreatedUtc = now,
             Values = values,
+            TeacherAudit = [.. assignment.TeacherAudit],
         };
     }
 

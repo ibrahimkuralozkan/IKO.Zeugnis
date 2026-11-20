@@ -75,6 +75,8 @@ public sealed class IssuedAssignment
     public string Password { get; set; } = "";
     /// <summary>Werte zum Zeitpunkt der Ausgabe (bzw. der letzten Übernahme): StudentId → Feldschlüssel → Wert.</summary>
     public Dictionary<Guid, Dictionary<string, FieldValue>> Baseline { get; set; } = [];
+    /// <summary>Von der Lehrkraft gemeldete Feldänderungen; getrennt vom Verwaltungsprotokoll.</summary>
+    public List<FieldAuditEntry> TeacherAudit { get; set; } = [];
     public List<ReturnRecord> Returns { get; set; } = [];
 }
 
@@ -111,6 +113,8 @@ public sealed class AssignmentFile
     public List<Catalog> Catalogs { get; set; } = [];
     /// <summary>Ausgangswerte der freigegebenen Felder.</summary>
     public List<StudentReport> Reports { get; set; } = [];
+    /// <summary>Änderungsverlauf der Lehrkraft; wird im verschlüsselten Entwurf und in der Rückgabe mitgeführt.</summary>
+    public List<FieldAuditEntry> TeacherAudit { get; set; } = [];
 }
 
 /// <summary>Rückgabe (<c>.an-verwaltung</c>) einer Lehrkraft zu genau einem Arbeitsauftrag.</summary>
@@ -126,6 +130,38 @@ public sealed class ResponseFile
     public DateTimeOffset CreatedUtc { get; set; } = DateTimeOffset.UtcNow;
     /// <summary>StudentId → Feldschlüssel → Wert (nur Werte, keine Revisionen).</summary>
     public Dictionary<Guid, Dictionary<string, string>> Values { get; set; } = [];
+    /// <summary>Änderungsverlauf der Lehrkraft, getrennt vom Verwaltungsprotokoll.</summary>
+    public List<FieldAuditEntry> TeacherAudit { get; set; } = [];
 }
 
-public sealed record AuditEntry(DateTimeOffset Utc, string Action, string Detail);
+/// <summary>Eine einzelne Änderung an einem Zeugnisfeld mit lesbaren und technischen Werten.</summary>
+public sealed record FieldAuditEntry(
+    Guid EntryId,
+    DateTimeOffset Utc,
+    Guid StudentId,
+    string StudentName,
+    string ClassName,
+    string FieldKey,
+    string FieldLabel,
+    string OldValue,
+    string NewValue,
+    string OldDisplay,
+    string NewDisplay);
+
+/// <summary>
+/// Ein Eintrag im Verwaltungsprotokoll. Ältere, allgemeine Einträge haben keine Feldangaben.
+/// Optionale Felddetails halten alte Schuldateien vollständig kompatibel.
+/// </summary>
+public sealed record AuditEntry(
+    DateTimeOffset Utc,
+    string Action,
+    string Detail,
+    Guid? StudentId = null,
+    string? StudentName = null,
+    string? ClassName = null,
+    string? FieldKey = null,
+    string? FieldLabel = null,
+    string? OldValue = null,
+    string? NewValue = null,
+    string? OldDisplay = null,
+    string? NewDisplay = null);

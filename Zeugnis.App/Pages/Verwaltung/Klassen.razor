@@ -163,11 +163,12 @@
             field == DateField.Conference ? d : c.ConferenceDate,
             field == DateField.Report ? d : c.ReportDate,
             field == DateField.Resumption ? d : c.ResumptionDate,
-            c.ResumptionTime));
+            c.ResumptionTime, DateTimeOffset.UtcNow));
     }
 
     private void SetTime(SchoolClass c, object? value) =>
-        Change(f => MasterData.SetClassReportDates(f, c.Name, c.ConferenceDate, c.ReportDate, c.ResumptionDate, value?.ToString()));
+        Change(f => MasterData.SetClassReportDates(f, c.Name, c.ConferenceDate, c.ReportDate, c.ResumptionDate,
+            value?.ToString(), DateTimeOffset.UtcNow));
 
     private void AskRemove(string name)
     {

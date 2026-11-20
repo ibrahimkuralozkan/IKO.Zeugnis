@@ -50,13 +50,42 @@ else
         </div>
 
         <details class="card">
-            <summary>Protokoll (@f.Audit.Count)</summary>
+            <summary>Verwaltungsprotokoll (@f.Audit.Count)</summary>
             <ul class="audit">
-                @foreach (var e in f.Audit.AsEnumerable().Reverse().Take(200))
+                @foreach (var e in f.Audit.AsEnumerable().Reverse())
                 {
                     <li><time>@e.Utc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</time> <strong>@e.Action</strong> @e.Detail</li>
                 }
             </ul>
+        </details>
+
+        @{
+            var teacherAudit = f.Assignments
+                .SelectMany(assignment => assignment.TeacherAudit.Select(entry => (Assignment: assignment, Entry: entry)))
+                .OrderByDescending(item => item.Entry.Utc)
+                .ToList();
+        }
+        <details class="card">
+            <summary>Lehrkraftprotokolle (@teacherAudit.Count)</summary>
+            @if (teacherAudit.Count == 0)
+            {
+                <p class="muted">Noch keine protokollierten Änderungen aus Rückgaben.</p>
+            }
+            else
+            {
+                <ul class="audit">
+                    @foreach (var item in teacherAudit)
+                    {
+                        <li>
+                            <time>@item.Entry.Utc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</time>
+                            <strong>@item.Assignment.TeacherName</strong>
+                            @item.Entry.ClassName · @item.Entry.StudentName · @item.Entry.FieldLabel:
+                            @item.Entry.OldDisplay → @item.Entry.NewDisplay
+                            <span class="muted">· @item.Assignment.Label</span>
+                        </li>
+                    }
+                </ul>
+            }
         </details>
     </AdminFrame>
 }
