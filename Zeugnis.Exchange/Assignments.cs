@@ -34,7 +34,8 @@ public static class AssignmentFactory
         if (invalid is not null) throw new MasterDataException($"Ungültige Freigabe: '{invalid}'.");
         if (request.ExpiresUtc <= now)
             throw new MasterDataException("Das Abgabedatum muss in der Zukunft liegen.");
-        var password = request.Password ?? GeneratePassword();
+        // Standard: das Halbjahreskennwort der Lehrkraft, damit sie sich nur eines merken muss.
+        var password = request.Password ?? MasterData.TeacherPassword(school, teacher.Id);
         EnvelopeCodec.ValidatePassword(password);
 
         var students = school.Students.Where(s => wanted.Contains(s.ClassName)).ToList();

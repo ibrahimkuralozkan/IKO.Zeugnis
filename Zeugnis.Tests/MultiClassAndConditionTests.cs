@@ -44,6 +44,33 @@ public class MultiClassAndConditionTests
     }
 
     [Fact]
+    public void Lehrkraft_hat_ein_Kennwort_fuer_alle_Auftraege_des_Halbjahres()
+    {
+        var f = TwoGrades();
+        var sport = TestData.Sport(f).Id;
+        AssignmentFactory.Create(f, new AssignmentRequest(sport, ["3a"], "Sport", ["r:Sport.*"], Now.AddDays(7)), Now);
+        AssignmentFactory.Create(f, new AssignmentRequest(sport, ["4a"], "Sport", ["r:Sport.*"], Now.AddDays(7)), Now);
+        var first = f.Assignments[0].Password;
+        Assert.Equal(first, f.Assignments[1].Password);
+        Assert.Equal(first, f.TeacherPasswords[sport]);
+
+        var other = f.Teachers.First(t => t.Id != sport).Id;
+        AssignmentFactory.Create(f, new AssignmentRequest(other, ["3a"], "Allgemein", ["t:Allgemein"], Now.AddDays(7)), Now);
+        Assert.NotEqual(first, f.Assignments[2].Password);        // jede Lehrkraft hat ihr eigenes
+
+        var renewed = MasterData.RenewTeacherPassword(f, sport, Now);
+        Assert.NotEqual(first, renewed);
+        Assert.Equal(first, f.Assignments[0].Password);           // ausgegebene Aufträge behalten ihr Kennwort
+        AssignmentFactory.Create(f, new AssignmentRequest(sport, ["3a"], "Sport 2", ["g:Sport"], Now.AddDays(7)), Now);
+        Assert.Equal(renewed, f.Assignments[3].Password);
+
+        f.Assignments.RemoveAll(a => a.TeacherId == other);
+        f.Classes.ForEach(c => c.ClassTeacherId = null);
+        MasterData.RemoveTeacher(f, other, Now);
+        Assert.False(f.TeacherPasswords.ContainsKey(other));
+    }
+
+    [Fact]
     public void Klasse_umbenennen_aendert_alle_Klassen_des_Auftrags()
     {
         var f = TwoGrades();

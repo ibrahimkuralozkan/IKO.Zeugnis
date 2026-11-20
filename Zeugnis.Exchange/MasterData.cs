@@ -44,7 +44,29 @@ public static class MasterData
         if (f.Assignments.Any(a => a.TeacherId == id && !a.Revoked))
             throw new MasterDataException($"„{teacher.DisplayName}“ hat noch offene Arbeitsaufträge.");
         f.Teachers.Remove(teacher);
+        f.TeacherPasswords.Remove(id);
         Log(f, now, "Lehrkraft entfernt", teacher.DisplayName);
+    }
+
+    /// <summary>Halbjahreskennwort der Lehrkraft; wird beim ersten Bedarf erzeugt.</summary>
+    public static string TeacherPassword(SchoolFile f, Guid teacherId)
+    {
+        TeacherById(f, teacherId);
+        if (!f.TeacherPasswords.TryGetValue(teacherId, out var password))
+            f.TeacherPasswords[teacherId] = password = AssignmentFactory.GeneratePassword();
+        return password;
+    }
+
+    /// <summary>
+    /// Neues Halbjahreskennwort, z. B. wenn das alte bekannt geworden ist. Gilt für künftige Aufträge;
+    /// bereits ausgegebene Aufträge behalten ihr Kennwort.
+    /// </summary>
+    public static string RenewTeacherPassword(SchoolFile f, Guid teacherId, DateTimeOffset now)
+    {
+        var teacher = TeacherById(f, teacherId);
+        var password = f.TeacherPasswords[teacherId] = AssignmentFactory.GeneratePassword();
+        Log(f, now, "Kennwort erneuert", teacher.DisplayName);
+        return password;
     }
 
     // ---------- Klassen ----------

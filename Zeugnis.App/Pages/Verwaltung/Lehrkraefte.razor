@@ -25,7 +25,7 @@
             {
                 <div class="table-wrap">
                     <table class="list">
-                        <thead><tr><th>Name</th><th>Geschlecht</th><th>Klassenlehrkraft</th><th></th></tr></thead>
+                        <thead><tr><th>Name</th><th>Geschlecht</th><th>Klassenlehrkraft</th><th>Kennwort (Halbjahr)</th><th></th></tr></thead>
                         <tbody>
                             @foreach (var t in f.Teachers.OrderBy(t => t.DisplayName))
                             {
@@ -35,6 +35,7 @@
                                         <td><input @bind="_editName" aria-label="Name" /></td>
                                         <td><GenderSelect @bind-Value="_editGender" /></td>
                                         <td>@ClassesOf(f, t.Id)</td>
+                                        <td></td>
                                         <td class="row-actions">
                                             <button class="btn primary" @onclick="SaveEdit">Übernehmen</button>
                                             <button class="btn" @onclick="() => _editId = null">Abbrechen</button>
@@ -47,6 +48,24 @@
                                         <td>@t.DisplayName</td>
                                         <td>@Labels.Of(t.Gender)</td>
                                         <td>@ClassesOf(f, t.Id)</td>
+                                        <td>
+                                            @if (!f.TeacherPasswords.TryGetValue(t.Id, out var pw))
+                                            {
+                                                <span class="muted small">entsteht mit dem ersten Auftrag</span>
+                                            }
+                                            else if (_renewId == t.Id)
+                                            {
+                                                <span class="small">Neues Kennwort? Bisherige Aufträge behalten ihr Kennwort.</span>
+                                                <button class="btn danger" @onclick="() => Renew(t)">Erneuern</button>
+                                                <button class="btn" @onclick="() => _renewId = null">Abbrechen</button>
+                                            }
+                                            else
+                                            {
+                                                @if (_showId == t.Id) { <code class="mono">@pw</code> }
+                                                <button class="btn" @onclick="() => _showId = _showId == t.Id ? null : t.Id">@(_showId == t.Id ? "Verbergen" : "Anzeigen")</button>
+                                                <button class="btn" @onclick="() => { ClearMessages(); _renewId = t.Id; }">Erneuern …</button>
+                                            }
+                                        </td>
                                         <td class="row-actions">
                                             @if (_deleteId == t.Id)
                                             {
@@ -77,6 +96,16 @@
     private string _editName = "";
     private Gender _editGender;
     private Guid? _deleteId;
+    private Guid? _showId;
+    private Guid? _renewId;
+
+    private void Renew(Teacher t)
+    {
+        if (Change(f => MasterData.RenewTeacherPassword(f, t.Id, DateTimeOffset.UtcNow),
+                $"Neues Kennwort für {t.DisplayName}. Es gilt für die nächsten Aufträge; bitte der Lehrkraft mitteilen und die Schuldatei speichern."))
+            _showId = t.Id;
+        _renewId = null;
+    }
 
     private static string ClassesOf(SchoolFile f, Guid id)
     {

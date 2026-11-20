@@ -26,6 +26,11 @@ public sealed class SchoolFile
     public List<StudentReport> Reports { get; set; } = [];
     /// <summary>Word-Vorlagen je Jahrgangsstufe und Bildungsgang.</summary>
     public List<WordTemplate> Templates { get; set; } = [];
+    /// <summary>
+    /// Ein Kennwort je Lehrkraft für dieses Halbjahr (gilt für alle ihre Aufträge). Liegt nur in der
+    /// verschlüsselten Schuldatei, nicht in den Auftragsdateien.
+    /// </summary>
+    public Dictionary<Guid, string> TeacherPasswords { get; set; } = [];
 
     /// <summary>Ausgegebene Arbeitsaufträge mit Ausgangsstand (für Konflikterkennung).</summary>
     public List<IssuedAssignment> Assignments { get; set; } = [];

@@ -158,13 +158,14 @@
                         <label class="field grow"><span>Bezeichnung</span><input @bind="_label" placeholder="@SuggestedLabel(f)" /></label>
                         <label class="field"><span>Abgabe bis</span><input type="date" @bind="_due" /></label>
                     </div>
-                    <div class="row">
-                        <label class="field grow">
-                            <span>Kennwort für die Lehrkraft (getrennt von der Datei weitergeben)</span>
-                            <input @bind="_password" autocomplete="off" spellcheck="false" class="mono" />
-                        </label>
-                        <button class="btn align-end" type="button" @onclick="() => _password = AssignmentFactory.GeneratePassword()">Neu erzeugen</button>
-                    </div>
+                    @if (_teacherId is { } tid && f.Teachers.Any(t => t.Id == tid))
+                    {
+                        <p class="muted">
+                            Kennwort: Die Lehrkraft verwendet für alle Aufträge dieses Halbjahres
+                            @(f.TeacherPasswords.ContainsKey(tid) ? "ihr bekanntes Kennwort" : "ein neues Kennwort, das mit diesem Auftrag erzeugt wird")
+                            (einsehen und erneuern unter <a href="verwaltung/lehrkraefte">Lehrkräfte</a>).
+                        </p>
+                    }
 
                     @foreach (var o in Overlaps(f))
                     {
@@ -184,8 +185,16 @@
             {
                 <div class="alert success handover">
                     <div><strong>@done.FileName</strong> wurde heruntergeladen.</div>
-                    <div>Kennwort für @done.Teacher: <code class="mono big">@done.Password</code></div>
-                    <div class="muted">Datei über LOGINEO senden, Kennwort auf anderem Weg (persönlich, Telefon). Das Kennwort steht auch später in der Auftragsliste.</div>
+                    @if (done.KnownPassword)
+                    {
+                        <div>@done.Teacher kennt das Kennwort bereits (gleiches Kennwort wie bei den bisherigen Aufträgen dieses Halbjahres).</div>
+                        <div class="muted">Nur die Datei über LOGINEO senden. Kennwort bei Bedarf: <code class="mono">@done.Password</code></div>
+                    }
+                    else
+                    {
+                        <div>Kennwort für @done.Teacher (gilt für alle Aufträge dieses Halbjahres): <code class="mono big">@done.Password</code></div>
+                        <div class="muted">Datei über LOGINEO senden, Kennwort einmalig auf anderem Weg (persönlich, Telefon). Es steht auch unter „Lehrkräfte“.</div>
+                    }
                 </div>
             }
         </div>
@@ -257,7 +266,7 @@
 @code {
     private sealed record SectionChoice(string Pattern, string Title, string KindLabel);
     private sealed record SubjectGroup(string Subject, List<SectionChoice> Sections);
-    private sealed record Created(string FileName, string Teacher, string Password);
+    private sealed record Created(string FileName, string Teacher, string Password, bool KnownPassword);
     private sealed record LoadedItem(string Name, LoadedResponse Loaded);
 
     private bool _newOpen;
@@ -267,7 +276,6 @@
     private readonly HashSet<string> _patterns = [];
     private string _label = "";
     private DateOnly _due = DateOnly.FromDateTime(DateTime.Today.AddDays(14));
-    private string _password = AssignmentFactory.GeneratePassword();
     private bool _busy;
     private bool _mustSave;
     private Created? _created;
@@ -373,21 +381,23 @@
             var label = string.IsNullOrWhiteSpace(_label) ? SuggestedLabel(f) : _label;
             var due = new DateTimeOffset(_due.ToDateTime(new TimeOnly(23, 59)));
             var ok = Change(x => file = AssignmentFactory.Create(x,
-                new AssignmentRequest(_teacherId ?? Guid.Empty, ChosenClasses(f), label, _patterns.ToList(), due, _studentIds.ToList(), _password.Trim()),
+                new AssignmentRequest(_teacherId ?? Guid.Empty, ChosenClasses(f), label, _patterns.ToList(), due, _studentIds.ToList()),
                 DateTimeOffset.UtcNow));
             if (!ok || file is null) return;
 
-            var bytes = await Codec.SealAsync(file, EnvelopeKind.Assignment, _password.Trim());
+            var password = f.Assignments.Single(a => a.AssignmentId == file.AssignmentId).Password;
+            // „Bekannt“, wenn die Lehrkraft schon einen Auftrag mit demselben Kennwort hat.
+            var known = f.Assignments.Any(a => a.AssignmentId != file.AssignmentId && a.TeacherId == file.TeacherId && a.Password == password);
+            var bytes = await Codec.SealAsync(file, EnvelopeKind.Assignment, password);
             var name = AssignmentFactory.FileName(file);
             await Files.DownloadAsync(bytes, name);
-            _created = new Created(name, file.TeacherName, _password.Trim());
+            _created = new Created(name, file.TeacherName, password, known);
             _mustSave = true;
             _newOpen = false;
             _label = "";
             _patterns.Clear();
             _classes.Clear();
             _studentIds.Clear();
-            _password = AssignmentFactory.GeneratePassword();
         }
         catch (ExchangeSecurityException ex) { Error = ex.Message; }
         finally { _busy = false; }

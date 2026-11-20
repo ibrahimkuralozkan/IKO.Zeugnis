@@ -58,7 +58,9 @@ Yayın: `.github/workflows/deploy-pwa.yml` – her `main` push'unda test + publi
 
 ## Durum (20.11.2026)
 
-Tamamlanan: v0.1 iskelet/şifreleme/birleştirme · v0.2 temel veriler + CSV · v0.2.1 katalog düzenleyici · v0.3 değerlendirme ekranı + şifreli taslak · v0.4 görevler + dönüş birleştirme (çakışma kararı) · v0.5 Word çıktısı · v0.5.1 sol panel (Lehrkraft/Verwaltung) · v0.5.2 ana sayfada adım adım açıklama · v0.6 hareketsizlikte otomatik kapanma + onaylı PWA güncellemesi · v0.7 yönü gösteren dosya uzantıları · v0.8 eski uygulamadan katalog/şablon devri için Word doldurucu geliştirmeleri · v0.9 sınıf zeugnis tarihleri, "Zahl" alan türü (Fehlzeiten), Schulformempfehlung · v0.10 öğretmen başına çok sınıflı görev, Rücklauf, koşullu bölümler (Religion katılımı, Deutschförderung), "Datum" alan türü.
+Tamamlanan: v0.1 iskelet/şifreleme/birleştirme · v0.2 temel veriler + CSV · v0.2.1 katalog düzenleyici · v0.3 değerlendirme ekranı + şifreli taslak · v0.4 görevler + dönüş birleştirme (çakışma kararı) · v0.5 Word çıktısı · v0.5.1 sol panel (Lehrkraft/Verwaltung) · v0.5.2 ana sayfada adım adım açıklama · v0.6 hareketsizlikte otomatik kapanma + onaylı PWA güncellemesi · v0.7 yönü gösteren dosya uzantıları · v0.8 eski uygulamadan katalog/şablon devri için Word doldurucu geliştirmeleri · v0.9 sınıf zeugnis tarihleri, "Zahl" alan türü (Fehlzeiten), Schulformempfehlung · v0.10 öğretmen başına çok sınıflı görev, Rücklauf, koşullu bölümler (Religion katılımı, Deutschförderung), "Datum" alan türü · v0.11 öğretmen başına yarıyıl parolası.
+
+- **Yarıyıl parolası (v0.11, kullanıcı kararı)**: `SchoolFile.TeacherPasswords` (öğretmen Id → parola; sadece şifreli okul dosyasında, görev dosyalarında yok). `AssignmentFactory.Create` istekte parola yoksa `MasterData.TeacherPassword` kullanır (ilk görevde üretilir). `RenewTeacherPassword` yeni parola verir; verilmiş görevler eski parolasını (`IssuedAssignment.Password`) korur. Aufträge'de parola alanı yok; Lehrkräfte'de göster/yenile. Yeni yarıyıl = yeni okul dosyası = yeni parolalar.
 
 - **Çok sınıflı görev (v0.10)**: `AssignmentRequest.ClassNames`; `IssuedAssignment.ClassNames` (+ görüntü `ClassName` = "3a, 4a"; eski dosyalar için `Classes()`), `AssignmentFile.ClassNames|ClassGrades` → her öğrenci kendi sınıf düzeyinin kataloğunu alır. Dosya adı `Auftrag_3a+4a_…`. Sınıf yeniden adlandırma görevlerdeki tüm sınıfları günceller.
 - **Rücklauf (`AssignmentStatus`)**: açık görevler için Missing/Overdue/Partial/Complete/Closed ve doldurulan alan sayısı (görünür bölümler, izinli alanlar). Aufträge sayfasında özet kartı + "Stand" sütunu.
@@ -75,7 +77,7 @@ Tamamlanan: v0.1 iskelet/şifreleme/birleştirme · v0.2 temel veriler + CSV · 
 
 ## Sıradaki işler (öncelik sırasıyla)
 
-0. Dosya alışverişinde açık kalan: öğretmen başına dönem boyunca tek parola (güvenlik kararı kullanıcıda), LOGINEO LMS "Aufgabe" ile gerçek deneme. Katalog düzenleyicide `VisibleWhen`/`ReportText` düzenleme alanı.
+0. Dosya alışverişinde açık kalan: LOGINEO LMS "Aufgabe" ile gerçek deneme. Katalog düzenleyicide `VisibleWhen`/`ReportText` düzenleme alanı.
 1. **iPad gerçek cihaz testi** canlı adreste (Safari, Dosyalar uygulaması, LOGINEO indirme/yükleme, ana ekrana ekleme, çevrimdışı açılış, güncelleme banner'ı).
 2. Word: Verwaltung'da şablonda kullanılabilecek tag'leri listeleyen yardım ekranı; ZIP öncesi eksik alan kontrolü. Öğretmen tarafı hareketsizlik kapanışı tarayıcıda gerçek `.an-lehrkraft` ile henüz denenmedi.
 3. Yeni yarıyıl: önceki okul dosyasından temel verileri ve katalogları kopyalayarak yeni dosya oluşturma.
