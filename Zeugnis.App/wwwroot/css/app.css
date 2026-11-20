@@ -109,6 +109,12 @@ h1:focus { outline: none; } /* FocusOnNavigate setzt den Fokus auf h1 */
 .card.role:hover, .card.role:focus-visible { border-color: var(--primary); transform: translateY(-2px); }
 .card.role p { color: var(--muted); margin: 0; }
 .role-icon { display: block; font-size: 1.8rem; color: var(--primary); margin-bottom: .4rem; }
+.card.guide h2 { display: flex; align-items: center; gap: .5rem; }
+.card.guide .role-icon { display: inline; font-size: 1.3rem; margin: 0; }
+.steps { margin: .5rem 0 0; padding-left: 1.4rem; color: var(--muted); }
+.steps li { margin: .45rem 0; padding-left: .2rem; }
+.steps li::marker { color: var(--primary); font-weight: 700; }
+.steps strong { color: var(--text); }
 
 /* Formulare – große Touch-Ziele */
 .form { display: flex; flex-direction: column; gap: .9rem; }
