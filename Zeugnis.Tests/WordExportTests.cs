@@ -258,6 +258,26 @@ public class WordExportTests
     }
 
     [Fact]
+    public void Faecherauswahl_aus_Katalogen_und_Word_Vorlage()
+    {
+        var f = School();
+        var cat = new Catalog
+        {
+            Id = "K3", Grade = 3, Track = StudentTrack.Regular,
+            Sections = [new CatalogSection { Key = "Mathe", Subject = "Mathematik", Kind = FieldKind.Grade },
+                        new CatalogSection { Key = "Sport", Subject = "Sport", Kind = FieldKind.Grade }],
+        };
+        f.Catalogs.Add(cat);
+        Assert.Equal(["Mathematik", "Sport"], SubjectOptions.For(f, cat).Select(o => o.Name)); // ohne Vorlage
+
+        WordTemplates.Set(f, 3, StudentTrack.Regular, "v.docx", Template(), DateTimeOffset.UtcNow);
+        var options = SubjectOptions.For(f, cat);
+        // g:Sport ist schon im Katalog; r:Deutsch.Lesen.03 und t:Allgemein fehlen noch.
+        Assert.Equal(["Mathematik", "Sport", "Allgemeine Bemerkungen", "Deutsch"], options.Select(o => o.Name));
+        Assert.Equal([false, false, true, true], options.Select(o => o.FromTemplate));
+    }
+
+    [Fact]
     public void Ungueltige_Uhrzeit_wird_abgelehnt()
     {
         var f = School();

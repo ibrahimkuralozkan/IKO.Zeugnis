@@ -371,3 +371,5 @@ code.big { font-size: 1.15rem; padding: .15rem .5rem; }
 .check.pick.picked { border-color: var(--primary); background: var(--info-bg); }
 .check.pick input { width: 1.1rem; height: 1.1rem; }
 table.conflicts td { vertical-align: top; }
+.subject-select { min-width: 11rem; }
+.subject-free { display: inline-flex; gap: .3rem; align-items: center; }

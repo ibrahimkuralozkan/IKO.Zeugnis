@@ -1,0 +1,67 @@
+@* Fach-Auswahl im Katalog-Editor: bekannte Fächer als Liste, „Neues Fach …“ für freie Eingabe. *@
+@using Zeugnis.Export
+
+@if (_free)
+{
+    <span class="subject-free">
+        <input class="subject-select" value="@Value" placeholder="Neues Fach" aria-label="@Label" @onchange="e => SetAsync(e.Value?.ToString())" />
+        @if (Options.Count > 0)
+        {
+            <button class="icon-btn" type="button" title="Aus Liste wählen" aria-label="Aus Liste wählen" @onclick="() => _free = false">▾</button>
+        }
+    </span>
+}
+else
+{
+    <select class="subject-select" aria-label="@Label" @onchange="OnSelectAsync">
+        <option value="" selected="@(string.IsNullOrEmpty(Value))">– Fach wählen –</option>
+        @foreach (var o in AllOptions)
+        {
+            <option value="@o.Name" selected="@(string.Equals(o.Name, Value, StringComparison.OrdinalIgnoreCase))">@o.Name@(o.FromTemplate ? " (aus Word-Vorlage)" : "")</option>
+        }
+        <option value="@NewEntry">Neues Fach …</option>
+    </select>
+}
+
+@code {
+    private const string NewEntry = "\u0001neu";
+    private bool _free;
+    /// <summary>Freie Eingabe nur, weil es noch keine Fächer gab (nicht vom Benutzer gewählt).</summary>
+    private bool _autoFree;
+
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public IReadOnlyList<SubjectOption> Options { get; set; } = [];
+    [Parameter] public string Label { get; set; } = "Fach";
+
+    protected override void OnParametersSet()
+    {
+        // Ohne bekannte Fächer gleich frei eingeben lassen; sobald es Fächer gibt, wieder die Liste zeigen.
+        if (Options.Count == 0 && string.IsNullOrEmpty(Value)) { _free = true; _autoFree = true; }
+        else if (_autoFree && Options.Count > 0) { _free = false; _autoFree = false; }
+        // Ein neu eingegebenes Fach, das inzwischen in der Liste steht, wieder als Auswahl zeigen.
+        else if (_free && !string.IsNullOrEmpty(Value) && Options.Any(o => string.Equals(o.Name, Value, StringComparison.OrdinalIgnoreCase)))
+            _free = false;
+    }
+
+    /// <summary>Ein vorhandener Wert, der (noch) nicht in der Liste steht, bleibt wählbar.</summary>
+    private IEnumerable<SubjectOption> AllOptions =>
+        string.IsNullOrWhiteSpace(Value) || Options.Any(o => string.Equals(o.Name, Value, StringComparison.OrdinalIgnoreCase))
+            ? Options
+            : Options.Prepend(new SubjectOption(Value, false));
+
+    private async Task OnSelectAsync(ChangeEventArgs e)
+    {
+        var v = e.Value?.ToString() ?? "";
+        if (v == NewEntry) { _free = true; _autoFree = false; return; }
+        await SetAsync(v);
+    }
+
+    private async Task SetAsync(string? v)
+    {
+        var clean = (v ?? "").Trim();
+        if (clean == (Value ?? "")) return;
+        Value = clean;
+        await ValueChanged.InvokeAsync(clean);
+    }
+}

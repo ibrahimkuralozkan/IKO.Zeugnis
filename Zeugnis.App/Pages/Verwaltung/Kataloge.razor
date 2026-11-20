@@ -116,7 +116,9 @@
                 <h2>Bereich hinzufügen</h2>
                 <div class="row">
                     <label class="field grow"><span>Titel im Zeugnis</span><input @bind="_secTitle" placeholder="z. B. Deutsch – Lesen" /></label>
-                    <label class="field"><span>Fach (für Fachlehrkräfte)</span><input @bind="_secSubject" placeholder="z. B. Deutsch" /></label>
+                    <label class="field"><span>Fach (für Fachlehrkräfte)</span>
+                        <SubjectSelect @bind-Value="_secSubject" Options="Subjects(f, cat)" Label="Fach für den neuen Bereich" />
+                    </label>
                     <label class="field">
                         <span>Art</span>
                         <select @bind="_secKind">
@@ -152,8 +154,8 @@
                             <div class="meta">
                                 <span class="badge">@KindLabel(s.Kind)</span>
                                 <label class="inline">Fach
-                                    <input value="@s.Subject" aria-label="Fach"
-                                           @onchange="e => Change(x => CatalogEditor.UpdateSection(x, cat.Id, s.Kind, s.Key, s.Title, e.Value?.ToString() ?? string.Empty))" />
+                                    <SubjectSelect @key="@($"{cat.Id}|{s.Kind}|{s.Key}")" Value="@s.Subject" Options="Subjects(f, cat)" Label="Fach"
+                                                   ValueChanged="v => Change(x => CatalogEditor.UpdateSection(x, cat.Id, s.Kind, s.Key, s.Title, v))" />
                                 </label>
                                 <code title="Feldschlüssel – ändert sich nie">@KeyLabel(s)</code>
                                 @if (!string.IsNullOrWhiteSpace(s.VisibleWhen))
@@ -284,6 +286,20 @@
         FieldKind.Date => "Datum",
         _ => "Auswahl",
     };
+
+    // Fächerliste je Katalog; neu berechnet, wenn sich Kataloge oder die Vorlage ändern (Revision steigt nicht bei jeder Änderung,
+    // daher ein einfacher Fingerabdruck aus Fächern, Feldern und Vorlage).
+    private (string Stamp, List<Zeugnis.Export.SubjectOption> Options)? _subjects;
+
+    private List<Zeugnis.Export.SubjectOption> Subjects(SchoolFile f, Catalog cat)
+    {
+        var template = WordTemplates.For(f, cat.Grade, cat.Track);
+        var stamp = $"{cat.Id}|{template?.UploadedUtc.Ticks}|{f.Catalogs.Sum(c => c.Sections.Count)}|" +
+                    string.Join(",", f.Catalogs.SelectMany(c => c.Sections).Select(s => s.Subject).Distinct());
+        if (_subjects is not { } cached || cached.Stamp != stamp)
+            _subjects = cached = (stamp, Zeugnis.Export.SubjectOptions.For(f, cat));
+        return cached.Options;
+    }
 
     private static string KeyLabel(CatalogSection s) =>
         s.Kind == FieldKind.Rating ? $"{new FieldKey(FieldKind.Rating, s.Key)}.*" : new FieldKey(s.Kind, s.Key).ToString();
