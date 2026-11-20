@@ -98,6 +98,22 @@ public class CatalogEditorTests
     }
 
     [Fact]
+    public void AddAndMoveSection_WithChosenPosition_UsesFinalElementNumber()
+    {
+        var (f, c) = Setup();
+        CatalogEditor.AddSection(f, c.Id, "A", "", FieldKind.Text, Now);
+        CatalogEditor.AddSection(f, c.Id, "C", "", FieldKind.Text, Now);
+        CatalogEditor.AddSection(f, c.Id, "B", "", FieldKind.Text, Now, position: 1);
+        Assert.Equal(["A", "B", "C"], c.Sections.Select(s => s.Key));
+
+        CatalogEditor.MoveSectionToPosition(f, c.Id, FieldKind.Text, "C", position: 0, now: Now);
+        Assert.Equal(["C", "A", "B"], c.Sections.Select(s => s.Key));
+
+        CatalogEditor.MoveSectionToPosition(f, c.Id, FieldKind.Text, "C", position: 2, now: Now);
+        Assert.Equal(["A", "B", "C"], c.Sections.Select(s => s.Key));
+    }
+
+    [Fact]
     public void RemovingSection_DeletesOnlyValuesOfThisGradeAndTrack()
     {
         var (f, c) = Setup();

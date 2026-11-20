@@ -243,9 +243,11 @@ tr.row-err td { background: var(--err-bg); color: var(--err-fg); }
 details.scale { margin-top: 1rem; border-top: 1px solid var(--border); padding-top: .75rem; }
 details.scale summary { cursor: pointer; color: var(--muted); }
 details.scale .form { margin-top: .75rem; max-width: 520px; }
-.element-add-grid { display: grid; grid-template-columns: minmax(18rem, 2fr) minmax(14rem, 1fr) minmax(10rem, .7fr) auto; gap: .75rem; align-items: end; }
+.element-add-grid { display: grid; grid-template-columns: minmax(16rem, 2fr) minmax(13rem, 1fr) minmax(9rem, .7fr) minmax(8rem, .8fr) auto; gap: .75rem; align-items: end; }
 .element-add-grid > * { min-width: 0; }
 .element-add-submit { align-self: end; white-space: nowrap; }
+.element-number { display: inline-flex; align-items: center; gap: .4rem; width: fit-content; color: var(--muted); font-size: .88rem; }
+.element-number select { width: auto; min-width: 4.25rem; min-height: 34px; padding: .25rem 1.8rem .25rem .55rem; font-weight: 700; color: var(--text); background-color: var(--surface); }
 @media (max-width: 900px) {
     .element-add-grid { grid-template-columns: minmax(16rem, 2fr) minmax(13rem, 1fr); }
     .element-add-submit { justify-self: start; }

@@ -130,6 +130,17 @@
                             }
                         </select>
                     </label>
+                    <label class="field">
+                        <span>Position</span>
+                        <select value="@NewPositionValue(cat)" @onchange="e => SetNewPosition(e.Value?.ToString())">
+                            <option value="-1">Am Ende</option>
+                            @for (var pi = 0; pi < cat.Sections.Count; pi++)
+                            {
+                                var position = pi;
+                                <option value="@position">@(position + 1) – @(position == 0 ? "Am Anfang" : $"nach Element {position}: {cat.Sections[position - 1].Title}")</option>
+                            }
+                        </select>
+                    </label>
                     <button class="btn primary element-add-submit" type="submit">Hinzufügen</button>
                 </div>
                 <p class="muted">Jede Note, Ankreuzgruppe, Bemerkung, Auswahl, Zahl und jedes Datum ist ein eigenes Element. Die Reihenfolge lässt sich anschließend frei mit ▲ und ▼ festlegen.</p>
@@ -156,7 +167,14 @@
                             <button class="icon-btn" disabled="@last" @onclick="() => Change(x => CatalogEditor.MoveSection(x, cat.Id, s.Kind, s.Key, 1, DateTimeOffset.UtcNow))" aria-label="nach unten">▼</button>
                         </div>
                         <div class="section-fields">
-                            <span class="muted small">Element @(si + 1)</span>
+                            <label class="element-number">Element
+                                <select value="@si" @onchange="e => MoveToPosition(cat, s, e.Value?.ToString())" aria-label="Position von @s.Title">
+                                    @for (var position = 0; position < cat.Sections.Count; position++)
+                                    {
+                                        <option value="@position">@(position + 1)</option>
+                                    }
+                                </select>
+                            </label>
                             <input class="title-input" value="@s.Title" aria-label="Titel"
                                    @onchange="e => Change(x => CatalogEditor.UpdateSection(x, cat.Id, s.Kind, s.Key, e.Value?.ToString() ?? string.Empty, s.Subject, DateTimeOffset.UtcNow))" />
                             <div class="meta">
@@ -273,6 +291,7 @@
     private string _secTitle = "";
     private string _secSubject = "";
     private FieldKind _secKind = FieldKind.Rating;
+    private int? _newPosition;
     private (FieldKind, string)? _deleteSection;
     private (FieldKind, string, string)? _deleteItem;
     private readonly Dictionary<string, string> _newItem = [];
@@ -332,6 +351,7 @@
         _deleteCatalog = false;
         _deleteSection = null;
         _deleteItem = null;
+        _newPosition = null;
         ClearMessages();
     }
 
@@ -372,8 +392,22 @@
     private void AddSection()
     {
         if (Current is not { } c) return;
-        if (Change(f => CatalogEditor.AddSection(f, c.Id, _secTitle, _secSubject, _secKind, DateTimeOffset.UtcNow)))
+        if (Change(f => CatalogEditor.AddSection(f, c.Id, _secTitle, _secSubject, _secKind, DateTimeOffset.UtcNow, _newPosition)))
+        {
             _secTitle = "";
+            _newPosition = null;
+        }
+    }
+
+    private int NewPositionValue(Catalog catalog) => _newPosition is { } position && position < catalog.Sections.Count ? position : -1;
+
+    private void SetNewPosition(string? value) =>
+        _newPosition = int.TryParse(value, out var position) && position >= 0 ? position : null;
+
+    private void MoveToPosition(Catalog catalog, CatalogSection section, string? value)
+    {
+        if (int.TryParse(value, out var position))
+            Change(f => CatalogEditor.MoveSectionToPosition(f, catalog.Id, section.Kind, section.Key, position, DateTimeOffset.UtcNow));
     }
 
     private void RemoveSection(CatalogSection s)

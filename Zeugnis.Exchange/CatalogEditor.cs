@@ -81,7 +81,8 @@ public static class CatalogEditor
 
     // ---------- Bereiche ----------
 
-    public static CatalogSection AddSection(SchoolFile f, string catalogId, string title, string subject, FieldKind kind, DateTimeOffset now)
+    public static CatalogSection AddSection(SchoolFile f, string catalogId, string title, string subject, FieldKind kind, DateTimeOffset now,
+        int? position = null)
     {
         var catalog = ById(f, catalogId);
         var cleanTitle = Text(title, "Bitte einen Titel für den Bereich angeben.", 80);
@@ -92,8 +93,9 @@ public static class CatalogEditor
             section.Items.Add(new CatalogItem { Id = "01", Text = "Option 1" });
             section.NextItemNumber = 2;
         }
-        catalog.Sections.Add(section);
-        Log(f, now, "Bereich angelegt", $"{catalog.Title} · {cleanTitle}");
+        var insertAt = Math.Clamp(position ?? catalog.Sections.Count, 0, catalog.Sections.Count);
+        catalog.Sections.Insert(insertAt, section);
+        Log(f, now, "Bereich angelegt", $"{catalog.Title} · {cleanTitle} · Position {insertAt + 1}");
         return section;
     }
 
@@ -136,6 +138,21 @@ public static class CatalogEditor
         catalog.Sections.Insert(Math.Clamp(insertion, 0, catalog.Sections.Count), section);
         if (now is { } timestamp)
             Log(f, timestamp, "Bereich verschoben", $"{catalog.Title} · {section.Title} → Position {insertion + 1}");
+    }
+
+    /// <summary>Verschiebt ein Element auf eine direkt gewählte, nullbasierte Endposition.</summary>
+    public static void MoveSectionToPosition(SchoolFile f, string catalogId, FieldKind kind, string key, int position,
+        DateTimeOffset? now = null)
+    {
+        var catalog = ById(f, catalogId);
+        var section = Section(f, catalogId, kind, key);
+        var oldIndex = catalog.Sections.IndexOf(section);
+        var target = Math.Clamp(position, 0, catalog.Sections.Count - 1);
+        if (oldIndex < 0 || oldIndex == target) return;
+        catalog.Sections.RemoveAt(oldIndex);
+        catalog.Sections.Insert(target, section);
+        if (now is { } timestamp)
+            Log(f, timestamp, "Bereich verschoben", $"{catalog.Title} · {section.Title} → Position {target + 1}");
     }
 
     /// <summary>Anzahl eingetragener Werte, die beim Löschen des Bereichs verloren gingen.</summary>
