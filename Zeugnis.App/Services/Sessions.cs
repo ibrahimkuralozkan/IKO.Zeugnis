@@ -173,16 +173,6 @@ public sealed class TeacherSession(EnvelopeCodec codec, IJSRuntime js)
         Changed?.Invoke();
     }
 
-    public async Task DiscardDraftAsync()
-    {
-        if (Assignment is null) return;
-        _pending?.Cancel();
-        await js.InvokeVoidAsync("zeugnis.draft.remove", Assignment.AssignmentId.ToString("N"));
-        Draft = DraftState.None;
-        DraftSavedUtc = null;
-        Changed?.Invoke();
-    }
-
     public async Task<(byte[] Bytes, string FileName)> CreateResponseAsync()
     {
         if (Assignment is null || _password is null) throw new InvalidOperationException("Kein Arbeitsauftrag geöffnet.");

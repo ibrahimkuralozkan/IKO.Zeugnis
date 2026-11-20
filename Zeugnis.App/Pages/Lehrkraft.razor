@@ -75,28 +75,15 @@ else
 
     <GradingView Context="ctx" OnChanged="Session.MarkChanged" />
 
-    <details class="card device-draft">
-        <summary>Zwischenstand auf diesem Gerät</summary>
-        <p class="muted">
-            Der Zwischenstand liegt verschlüsselt im Speicher dieses Browsers und lässt sich nur mit dem Auftragskennwort öffnen.
-            Auf einem gemeinsam genutzten Gerät nach Abgabe löschen.
-        </p>
-        @if (_confirmDiscard)
-        {
-            <button class="btn danger" @onclick="DiscardAsync">Zwischenstand wirklich löschen</button>
-            <button class="btn" @onclick="() => _confirmDiscard = false">Abbrechen</button>
-        }
-        else
-        {
-            <button class="btn" @onclick="() => _confirmDiscard = true" disabled="@(Session.Draft == DraftState.None)">Zwischenstand löschen</button>
-        }
-    </details>
+    <p class="muted small">
+        Zwischenstände werden verschlüsselt in diesem Browser gesichert (nur mit dem Auftragskennwort lesbar)
+        und beim nächsten Öffnen desselben Auftrags wiederhergestellt.
+    </p>
 }
 
 @code {
     private bool _busy;
     private bool _restoredSeen;
-    private bool _confirmDiscard;
     private string? _response;
     private Progress _responseProgress;
     private string? _error;
@@ -133,12 +120,5 @@ else
         await Session.CloseAsync();
         _response = null;
         _restoredSeen = false;
-        _confirmDiscard = false;
-    }
-
-    private async Task DiscardAsync()
-    {
-        await Session.DiscardDraftAsync();
-        _confirmDiscard = false;
     }
 }
