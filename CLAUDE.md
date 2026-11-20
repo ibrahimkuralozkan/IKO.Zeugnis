@@ -8,7 +8,7 @@ Bu dosya yeni bir Claude Code oturumunun (başka bir bilgisayarda da) projeyi he
 - **İletişim Türkçe**, uygulama arayüzü **Almanca** (öğretmenler için), kod yorumları Almanca/İngilizce.
 - Bu **tamamen yeni** bir uygulama. Eski projelerden (`IKO.ZeugnisManager.Ipad`, `.Web`, `.V2`, `ZeugnisPilot` …) **kod alınmaz**.
   İstisna (kullanıcı kararı 20.11.2026): eski `IKO.ZeugnisManager.Web` uygulamasının **katalog metinleri, Word şablonları ve karne kuralları** yeni uygulamaya taşınabilir. **Öğrenci, öğretmen, not verisi asla.** Taşınan katalog/şablonlar repoya ve yayına girmez; yalnız okul dosyasına içe aktarılır (uygulama boş kalır).
-- Commit/push yalnızca kullanıcı isteyince. Commit mesajı İngilizce, sonunda attribution satırı.
+- Bundan sonraki her işlevsel değişiklikte `CLAUDE.md` de güncellenir: ne değiştiği, neden değiştiği, korunması gereken davranış ve ilgili testler yazılır. Kod ve açıklama doğrulamadan sonra birlikte commit edilip GitHub'a push edilir. Commit mesajı İngilizce, sonunda attribution satırı.
 - Her işlevsel değişiklikte `Directory.Build.props` sürümü artırılır (SemVer). Uyarılar hata sayılır.
 - **Gerçek öğrenci verisi, parolalar, `.schuldatei/.an-lehrkraft/.an-verwaltung` dosyaları asla Git'e girmez.** Testlerde yalnız uydurma veri (`Test-Kennwort-123` vb.).
 - Kullanıcının okul bilgisayarında admin yetkisi yok → kurulum gerektiren çözümler (MAUI workload vb.) yok; PWA bilinçli seçim.
