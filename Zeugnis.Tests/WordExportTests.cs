@@ -231,7 +231,8 @@ public class WordExportTests
         MasterData.SetClassReportDates(f, "3a", new DateOnly(2027, 6, 20), new DateOnly(2027, 6, 25), new DateOnly(2027, 8, 11), "08:00");
         var s = f.Students[0];
         var empty = ReportExport.ValuesFor(f, s, Today);
-        Assert.Equal("Fehlstunden insgesamt: 0, davon unentschuldigt: 0", empty("student.fehlstunden"));
+        Assert.Equal("", empty("student.fehlstunden"));
+        Assert.Equal("", empty("student.verspaetungen"));
         Assert.Equal("", empty("student.schulform.auswahl")); // Katalog ohne Schulform-Auswahl
 
         f.Catalogs.Add(new Catalog
@@ -255,6 +256,20 @@ public class WordExportTests
         Assert.StartsWith("☐ der Hauptschule   ☐ der Realschule   ☒ des Gymnasiums", v("student.schulform.auswahl"));
         Assert.Contains("am 20.06.2027 beschlossen, dass Anna Muster", v("student.schulform.einleitung"));
         Assert.Equal("n:Fehlstunden", FieldKey.Number("Fehlstunden").ToString());
+    }
+
+    [Fact]
+    public void Explizit_eingetragene_Null_Fehlzeiten_werden_ausgegeben()
+    {
+        var f = School();
+        var s = f.Students[0];
+        var now = DateTimeOffset.UtcNow;
+        f.ReportFor(s.Id).Set("n:Fehlstunden", "0", "Verwaltung", now);
+        f.ReportFor(s.Id).Set("n:Fehlstunden-unentschuldigt", "0", "Verwaltung", now);
+
+        var values = ReportExport.ValuesFor(f, s, Today);
+
+        Assert.Equal("Fehlstunden insgesamt: 0, davon unentschuldigt: 0", values("student.fehlstunden"));
     }
 
     [Fact]

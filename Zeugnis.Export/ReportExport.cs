@@ -65,9 +65,8 @@ public static class ReportExport
                 ? $"Wiederbeginn des Unterrichts am {ReportText.Weekday(w)}, den {Date(w)}" +
                   (cls.ResumptionTime.Length > 0 ? $" um {cls.ResumptionTime} Uhr." : ".")
                 : "",
-            "student.fehlstunden" =>
-                $"Fehlstunden insgesamt: {Count(ReportText.AbsenceKey)}, davon unentschuldigt: {Count(ReportText.UnexcusedKey)}",
-            "student.verspaetungen" => $"Anzahl der Verspätungen: {Count(ReportText.LateKey)}",
+            "student.fehlstunden" => Attendance(),
+            "student.verspaetungen" => Count(ReportText.LateKey) is { } late ? $"Anzahl der Verspätungen: {late}" : "",
             "student.schulform.titel" => HasSchoolType() ? "Empfehlung zur Wahl der Schulformen in der Sekundarstufe I" : "",
             "student.schulform.einleitung" => HasSchoolType()
                 ? $"Die Klassenkonferenz hat am {(cls?.ConferenceDate is { } kd ? Date(kd) : "__________")} beschlossen, " +
@@ -89,7 +88,12 @@ public static class ReportExport
         };
 
         string Date(DateOnly? d) => d?.ToString("dd.MM.yyyy", de) ?? "";
-        string Count(string key) => report?.Get(key) is { Length: > 0 } v ? v : "0";
+        string? Count(string key) => report?.Get(key) is { Length: > 0 } v ? v : null;
+        string Attendance() => (Count(ReportText.AbsenceKey), Count(ReportText.UnexcusedKey)) switch
+        {
+            ({ } total, { } unexcused) => $"Fehlstunden insgesamt: {total}, davon unentschuldigt: {unexcused}",
+            _ => "",
+        };
         string Box(string key, string option) => report?.Get(key) == option ? "☒" : "☐";
         bool HasSchoolType() => catalog?.FieldKeys().Contains(ReportText.SchoolTypeKey) == true;
 

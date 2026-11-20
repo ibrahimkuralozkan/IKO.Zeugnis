@@ -62,6 +62,40 @@ public class MergeEngineTests
     }
 
     [Fact]
+    public void Commit_RejectsPreviewWhenSchoolValueChangedMeanwhile()
+    {
+        var school = TestData.School();
+        var anna = school.Students[0].Id;
+        var firstAssignment = TestData.SportAssignment(school);
+        var secondAssignment = TestData.SportAssignment(school);
+        var firstResponse = Respond(firstAssignment, a => Fill(a, 0, "g:Sport", "2"));
+        var secondResponse = Respond(secondAssignment, a => Fill(a, 0, "g:Sport", "4"));
+        var firstPreview = MergeEngine.Preview(school, firstResponse, TestData.Now);
+        var secondPreview = MergeEngine.Preview(school, secondResponse, TestData.Now);
+
+        MergeEngine.Commit(school, firstPreview, NoChoices, TestData.Now);
+
+        var ex = Assert.Throws<ExchangeSecurityException>(() =>
+            MergeEngine.Commit(school, secondPreview, NoChoices, TestData.Now));
+        Assert.Contains("seit der Vorschau geändert", ex.Message);
+        Assert.Equal("2", school.ReportFor(anna).Get("g:Sport"));
+    }
+
+    [Fact]
+    public void Commit_RejectsPreviewWhenAssignmentWasClosedMeanwhile()
+    {
+        var school = TestData.School();
+        var assignment = TestData.SportAssignment(school);
+        var response = Respond(assignment, a => Fill(a, 0, "g:Sport", "2"));
+        var preview = MergeEngine.Preview(school, response, TestData.Now);
+        school.Assignments.Single().Revoked = true;
+
+        var ex = Assert.Throws<ExchangeSecurityException>(() =>
+            MergeEngine.Commit(school, preview, NoChoices, TestData.Now));
+        Assert.Contains("inzwischen abgeschlossen", ex.Message);
+    }
+
+    [Fact]
     public void FieldOutsideScope_RejectsWholeResponse()
     {
         var school = TestData.School();

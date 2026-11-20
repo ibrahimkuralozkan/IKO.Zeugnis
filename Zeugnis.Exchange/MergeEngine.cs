@@ -21,6 +21,7 @@ public sealed record MergeItem(
     string? SchoolValue,
     string IncomingValue,
     string? SchoolChangedBy,
+    long SchoolRevisionAtPreview,
     /// <summary>Wert stammte von einer anderen Person und wird von dieser Lehrkraft geändert (z. B. Kontrolle der Klassenlehrkraft).</summary>
     string? CorrectedFrom = null);
 
@@ -107,6 +108,7 @@ public static class MergeEngine
                 preview.Items.Add(new MergeItem(studentId, name, key,
                     schoolChanged ? MergeOutcome.Conflict : MergeOutcome.Apply,
                     baseValue?.Value, schoolValue?.Value, incoming, schoolChanged ? schoolValue?.ChangedBy : null,
+                    schoolValue?.Revision ?? 0,
                     schoolChanged ? null : correctedFrom));
             }
         }
@@ -120,8 +122,34 @@ public static class MergeEngine
         if (school.ProcessedResponseIds.Contains(preview.Response.ResponseId))
             throw new ExchangeSecurityException("Diese Rückgabe wurde bereits übernommen.");
 
+        var assignment = school.Assignments.FirstOrDefault(a => a.AssignmentId == preview.Response.AssignmentId)
+            ?? throw new ExchangeSecurityException("Der zugehörige Arbeitsauftrag ist nicht mehr vorhanden.");
+        if (assignment.Revoked)
+            throw new ExchangeSecurityException("Der zugehörige Arbeitsauftrag wurde inzwischen abgeschlossen.");
+        if (assignment.TeacherId != preview.Response.TeacherId)
+            throw new ExchangeSecurityException("Die Rückgabe stammt nicht von der beauftragten Lehrkraft.");
+
+        var allowedStudents = assignment.StudentIds.ToHashSet();
+        foreach (var (studentId, fields) in preview.Response.Values)
+        {
+            if (!allowedStudents.Contains(studentId))
+                throw new ExchangeSecurityException("Die Rückgabe enthält nicht freigegebene Schüler.");
+            var bad = fields.Keys.FirstOrDefault(k => !FieldKey.TryParse(k, out _) || !FieldScope.IsAllowed(k, assignment.AllowedFields));
+            if (bad is not null)
+                throw new ExchangeSecurityException($"Die Rückgabe enthält ein nicht freigegebenes Feld ({bad}).");
+        }
+
+        foreach (var item in preview.Items)
+        {
+            var currentRevision = school.Reports.FirstOrDefault(r => r.StudentId == item.StudentId)?
+                .Fields.GetValueOrDefault(item.FieldKey)?.Revision ?? 0;
+            if (currentRevision != item.SchoolRevisionAtPreview)
+                throw new ExchangeSecurityException(
+                    "Die Schuldatei wurde seit der Vorschau geändert. Bitte die Rückgaben neu einlesen.");
+        }
+
         int applied = 0, taken = 0, kept = 0;
-        var by = preview.Assignment.TeacherName;
+        var by = assignment.TeacherName;
         foreach (var item in preview.Items)
         {
             if (item.Outcome == MergeOutcome.Conflict &&
@@ -133,17 +161,17 @@ public static class MergeEngine
             var report = school.ReportFor(item.StudentId);
             report.Set(item.FieldKey, item.IncomingValue, by, now);
             // Neuer Ausgangsstand: Eine spätere Korrektur-Rückgabe derselben Lehrkraft gilt nicht als Konflikt.
-            if (!preview.Assignment.Baseline.TryGetValue(item.StudentId, out var baseline))
-                preview.Assignment.Baseline[item.StudentId] = baseline = new(StringComparer.Ordinal);
+            if (!assignment.Baseline.TryGetValue(item.StudentId, out var baseline))
+                assignment.Baseline[item.StudentId] = baseline = new(StringComparer.Ordinal);
             baseline[item.FieldKey] = report.Fields[item.FieldKey];
             if (item.Outcome == MergeOutcome.Conflict) taken++; else applied++;
         }
 
         school.ProcessedResponseIds.Add(preview.Response.ResponseId);
-        preview.Assignment.Returns.Add(new ReturnRecord(preview.Response.ResponseId, preview.Response.CreatedUtc, now,
+        assignment.Returns.Add(new ReturnRecord(preview.Response.ResponseId, preview.Response.CreatedUtc, now,
             applied, taken, kept, preview.UnchangedCount));
         school.Audit.Add(new AuditEntry(now, "Rückgabe übernommen",
-            $"{by} · {preview.Assignment.ClassName} · {preview.Assignment.Label} · {applied} übernommen, " +
+            $"{by} · {assignment.ClassName} · {assignment.Label} · {applied} übernommen, " +
             $"{taken + kept} Konflikte ({taken} Lehrkraft / {kept} Verwaltung) · {preview.Response.ResponseId:N}"));
         return new MergeResult(applied, taken, kept, preview.UnchangedCount);
     }
