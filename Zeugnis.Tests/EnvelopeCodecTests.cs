@@ -7,6 +7,45 @@ public class EnvelopeCodecTests
 {
     private readonly EnvelopeCodec _codec = new(new DotNetAeadCipher());
 
+    /// <summary>Keine Datei, die die App erzeugt, darf Namen oder Bewertungen im Klartext enthalten.</summary>
+    [Fact]
+    public async Task Alle_drei_Dateien_enthalten_keine_Klartextdaten()
+    {
+        var school = TestData.School();
+        school.ReportFor(school.Students[0].Id).Set("t:Allgemein", "Geheimer Bemerkungstext", "Verwaltung", TestData.Now);
+        var assignment = TestData.SportAssignment(school);
+        assignment.Reports.First().Set("g:Sport", "2", "Herr Muster", TestData.Now);
+        var response = ResponseBuilder.Create(assignment, TestData.Now);
+
+        var files = new[]
+        {
+            await _codec.SealAsync(school, EnvelopeKind.School, TestData.Password),
+            await _codec.SealAsync(assignment, EnvelopeKind.Assignment, TestData.Password),
+            await _codec.SealAsync(response, EnvelopeKind.Response, TestData.Password, ResponseBuilder.Reference(assignment.AssignmentId)),
+        };
+
+        // Lange Merkmale: zufälliger Geheimtext enthält sie praktisch nie zufällig.
+        var secrets = new[] { "Testschule", "Frau Beispiel", "Herr Muster", "Geheimer Bemerkungstext", "bewegt sich sicher" };
+        foreach (var bytes in files)
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(bytes);
+            var random = new[] { "Ciphertext", "Salt", "Nonce" };
+            // Unverschlüsselter Kopf: nur Format, Version, Art, Verfahren und ggf. Auftragsnummer.
+            var header = doc.RootElement.EnumerateObject()
+                .Where(p => !random.Contains(p.Name, StringComparer.OrdinalIgnoreCase))
+                .Select(p => p.Name).ToList();
+            Assert.All(header, name => Assert.Contains(name, new[] { "Format", "Version", "Kind", "Ref", "Kdf", "Iterations" }, StringComparer.OrdinalIgnoreCase));
+
+            var cipher = Convert.FromBase64String(doc.RootElement.EnumerateObject()
+                .First(p => p.Name.Equals("Ciphertext", StringComparison.OrdinalIgnoreCase)).Value.GetString()!);
+            foreach (var secret in secrets)
+            {
+                Assert.DoesNotContain(secret, System.Text.Encoding.UTF8.GetString(bytes));
+                Assert.Equal(-1, cipher.AsSpan().IndexOf(System.Text.Encoding.UTF8.GetBytes(secret)));
+            }
+        }
+    }
+
     [Fact]
     public void Dateiendungen_zeigen_den_Empfaenger()
     {
