@@ -487,6 +487,9 @@ $RECYCLE.BIN/
 *.zschule
 *.zauftrag
 *.zantwort
+*.schuldatei
+*.an-lehrkraft
+*.an-verwaltung
 AppData/
 LocalData/
 

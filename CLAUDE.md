@@ -9,7 +9,7 @@ Bu dosya yeni bir Claude Code oturumunun (başka bir bilgisayarda da) projeyi he
 - Bu **tamamen yeni** bir uygulama. Eski projelerden (`IKO.ZeugnisManager.Ipad`, `.Web`, `.V2`, `ZeugnisPilot` …) **kod veya veri alınmaz** – kullanıcı bunu açıkça istedi.
 - Commit/push yalnızca kullanıcı isteyince. Commit mesajı İngilizce, sonunda attribution satırı.
 - Her işlevsel değişiklikte `Directory.Build.props` sürümü artırılır (SemVer). Uyarılar hata sayılır.
-- **Gerçek öğrenci verisi, parolalar, `.zschule/.zauftrag/.zantwort` dosyaları asla Git'e girmez.** Testlerde yalnız uydurma veri (`Test-Kennwort-123` vb.).
+- **Gerçek öğrenci verisi, parolalar, `.schuldatei/.an-lehrkraft/.an-verwaltung` dosyaları asla Git'e girmez.** Testlerde yalnız uydurma veri (`Test-Kennwort-123` vb.).
 - Kullanıcının okul bilgisayarında admin yetkisi yok → kurulum gerektiren çözümler (MAUI workload vb.) yok; PWA bilinçli seçim.
 - Hukuki (DSGVO) kesinlik vaat etme; teknik önlemleri anlat.
 
@@ -34,7 +34,7 @@ Bu dosya yeni bir Claude Code oturumunun (başka bir bilgisayarda da) projeyi he
 - **Katalog anahtarları sabit**: bölüm anahtarı başlıktan slug (nokta yok), başlık değişse de değişmez; kriter Id'leri (`01`, `02`…) asla yeniden kullanılmaz (`NextItemNumber`).
 - **Ölçek değerleri** konum olarak saklanır (`"1"` = en iyi). Not `"1"`–`"6"`, seçim = seçenek Id'si.
 - Öğretmen taslağı: her değişiklikten 1,5 sn sonra aynı parolayla şifrelenip `localStorage["zeugnis.draft.{AssignmentId}"]`'e yazılır; görev tekrar açılınca geri yüklenir.
-- Okul dosyası yalnız bellekte; kaydetmek = yeni revizyonlu `.zschule` indirmek (LOGINEO'ya konur, eskisi silinir).
+- Okul dosyası yalnız bellekte; kaydetmek = yeni revizyonlu `.schuldatei` indirmek (LOGINEO'ya konur, eskisi silinir).
 
 ### Bilinen tuzaklar
 
@@ -53,11 +53,13 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 ```
 
 **Canlı:** https://ibrahimkuralozkan.github.io/IKO.Zeugnis/ (repo **public**, 20.11.2026'da kullanıcı onayıyla açıldı).
-Yayın: `.github/workflows/deploy-pwa.yml` – her `main` push'unda test + publish; Pages'e dağıtım repo değişkeni `PAGES_ENABLED=true` iken (ayarlı). Yayın paketinde veri dosyası (`.zschule/.zauftrag/.zantwort/.docx`) çıkarsa iş akışı durur. Base path otomatik olarak repo adı (`/IKO.Zeugnis/`); service worker base'i kendi konumundan hesaplar.
+Yayın: `.github/workflows/deploy-pwa.yml` – her `main` push'unda test + publish; Pages'e dağıtım repo değişkeni `PAGES_ENABLED=true` iken (ayarlı). Yayın paketinde veri dosyası (`.schuldatei/.an-lehrkraft/.an-verwaltung/.docx`) çıkarsa iş akışı durur. Base path otomatik olarak repo adı (`/IKO.Zeugnis/`); service worker base'i kendi konumundan hesaplar.
 
 ## Durum (20.11.2026)
 
-Tamamlanan: v0.1 iskelet/şifreleme/birleştirme · v0.2 temel veriler + CSV · v0.2.1 katalog düzenleyici · v0.3 değerlendirme ekranı + şifreli taslak · v0.4 görevler + dönüş birleştirme (çakışma kararı) · v0.5 Word çıktısı · v0.5.1 sol panel (Lehrkraft/Verwaltung) · v0.5.2 ana sayfada adım adım açıklama · v0.6 hareketsizlikte otomatik kapanma + onaylı PWA güncellemesi.
+Tamamlanan: v0.1 iskelet/şifreleme/birleştirme · v0.2 temel veriler + CSV · v0.2.1 katalog düzenleyici · v0.3 değerlendirme ekranı + şifreli taslak · v0.4 görevler + dönüş birleştirme (çakışma kararı) · v0.5 Word çıktısı · v0.5.1 sol panel (Lehrkraft/Verwaltung) · v0.5.2 ana sayfada adım adım açıklama · v0.6 hareketsizlikte otomatik kapanma + onaylı PWA güncellemesi · v0.7 yönü gösteren dosya uzantıları.
+
+- **Dosya adları (v0.7, kullanıcı kararı)**: uzantı alıcıyı gösterir. `Auftrag_3a_Deutsch_Herr_Ali.an-lehrkraft` (Verwaltung → öğretmen), `Rueckgabe_3a_Deutsch_Herr_Ali_20261120-1430.an-verwaltung` (öğretmen → Verwaltung), `Schuldatei_2026-27_HJ1_R3.schuldatei` (R = revizyon). Eski `.zschule/.zauftrag/.zantwort` artık açılmaz; `.gitignore` ve yayın kontrolü ikisini de dışlar.
 
 - **Word çıktısı (`Zeugnis.Export`)**: şablon `SchoolFile.Templates` içinde, sınıf düzeyi + eğitim yolu başına bir `.docx`. İçerik denetimi tag'leri: `student.name|firstname|lastname|birthdate`, `class.name`, `school.name|address|town`, `term`, `date` ve alan anahtarları (`g:`, `t:`, `s:`, `r:`). İşaret kutusu: `r:Deutsch.Lesen.03#2` (değer 2 ise işaretli). Bilinmeyen tag'ler değiştirilmez. Verwaltung → Zeugnisse: yükleme, öğrenci başına `.docx`, sınıf ZIP.
 - **Hareketsizlik (`Shared/IdleGuard.razor`, `zeugnis.idle`)**: 20 dk, 2 dk önce uyarı. Öğretmen: taslak zaten şifreli kayıtlı, görev kapanır. Verwaltung: kaydedilmemiş değişiklik varsa önce yeni revizyon indirilir, sonra kapanır (kaydetme başarısızsa açık kalır). Zaman damgası ile ölçülür (iPad arka plan zamanlayıcıları için).
@@ -67,6 +69,6 @@ Tamamlanan: v0.1 iskelet/şifreleme/birleştirme · v0.2 temel veriler + CSV · 
 ## Sıradaki işler (öncelik sırasıyla)
 
 1. **iPad gerçek cihaz testi** canlı adreste (Safari, Dosyalar uygulaması, LOGINEO indirme/yükleme, ana ekrana ekleme, çevrimdışı açılış, güncelleme banner'ı).
-2. Word: Verwaltung'da şablonda kullanılabilecek tag'leri listeleyen yardım ekranı; ZIP öncesi eksik alan kontrolü. Öğretmen tarafı hareketsizlik kapanışı tarayıcıda gerçek `.zauftrag` ile henüz denenmedi.
+2. Word: Verwaltung'da şablonda kullanılabilecek tag'leri listeleyen yardım ekranı; ZIP öncesi eksik alan kontrolü. Öğretmen tarafı hareketsizlik kapanışı tarayıcıda gerçek `.an-lehrkraft` ile henüz denenmedi.
 3. Yeni yarıyıl: önceki okul dosyasından temel verileri ve katalogları kopyalayarak yeni dosya oluşturma.
 4. İsteğe bağlı: `.xlsx` doğrudan içe aktarma, sınıf görünümü (tüm öğrenciler × bir kriter tablosu).

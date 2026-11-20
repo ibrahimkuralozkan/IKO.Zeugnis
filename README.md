@@ -12,9 +12,9 @@
 
 | Uzantı | Kimde | İçerik |
 |---|---|---|
-| `.zschule` | Verwaltung | Tüm okul: öğrenciler, öğretmenler, kataloglar, karneler, dağıtılan görevler, kayıt geçmişi |
-| `.zauftrag` | Öğretmene giden | Yalnız o öğretmenin sınıfı, öğrencileri ve izinli alanları |
-| `.zantwort` | Öğretmenden dönen | Doldurulan değerler |
+| `.schuldatei` | Verwaltung | Tüm okul: öğrenciler, öğretmenler, kataloglar, karneler, dağıtılan görevler, kayıt geçmişi |
+| `.an-lehrkraft` | Öğretmene giden | Yalnız o öğretmenin sınıfı, öğrencileri ve izinli alanları |
+| `.an-verwaltung` | Öğretmenden dönen | Doldurulan değerler |
 
 Üçü de aynı zarfı kullanır: PBKDF2-SHA256 (310.000 tur) → AES-256-GCM, parola en az 12 karakter. Dosya türü kimliği doğrulanan ek veriye (AAD) bağlıdır; örneğin bir dönüş dosyası okul dosyası gibi açılamaz. Biçim `Zeugnis.Exchange/EnvelopeCodec.cs` içinde tanımlıdır. Tarayıcıda şifreleme Web Crypto ile yapılır (`wwwroot/js/zeugnis.js`), çünkü .NET WASM AES-GCM desteklemez. İki uygulama aynı biçimi üretir; tarayıcıda şifrelenen bir dosyanın .NET'te açıldığı doğrulandı.
 
@@ -58,7 +58,7 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 
 ## Kurallar
 
-- Gerçek öğrenci verileri, parolalar ve `.zschule`/`.zauftrag`/`.zantwort` dosyaları asla Git'e eklenmez (`.gitignore` bunları dışlar).
+- Gerçek öğrenci verileri, parolalar ve `.schuldatei`/`.an-lehrkraft`/`.an-verwaltung` dosyaları asla Git'e eklenmez (`.gitignore` bunları dışlar).
 - Her işlevsel değişiklikte `Directory.Build.props` içindeki sürüm artırılır.
 - Uyarılar hata sayılır (`TreatWarningsAsErrors`).
 
@@ -71,9 +71,9 @@ Repo public; Pages kaynağı "GitHub Actions", repo değişkeni `PAGES_ENABLED=t
 ## İş akışı (kısa)
 
 1. **Verwaltung** → okul dosyası, öğretmenler, sınıflar, öğrenciler, kataloglar.
-2. **Aufträge** → öğretmen, sınıf ve bölümleri seç → `.zauftrag` iner, parola ekranda görünür. **Okul dosyasını kaydet.**
+2. **Aufträge** → öğretmen, sınıf ve bölümleri seç → `.an-lehrkraft` iner, parola ekranda görünür. **Okul dosyasını kaydet.**
 3. Dosyayı LOGINEO üzerinden, parolayı ayrı bir kanaldan öğretmene ilet.
-4. **Lehrkraft** → öğretmen dosyayı açar, doldurur (ara kayıt otomatik), `.zantwort` oluşturur ve LOGINEO'ya koyar.
+4. **Lehrkraft** → öğretmen dosyayı açar, doldurur (ara kayıt otomatik), `.an-verwaltung` oluşturur ve LOGINEO'ya koyar.
 5. **Aufträge → Rückgaben einlesen** → önizleme, çakışma varsa karar ver, "Übernehmen" → okul dosyasını kaydet.
 
 Dönüş dosyasının başlığında şifrelenmemiş ama doğrulanan bir görev numarası bulunur (`Ref`). Verwaltung bu numarayla doğru görevi ve parolasını bulur. Numara kişisel veri içermez ve değiştirilirse dosya açılmaz.

@@ -3,7 +3,7 @@ using Zeugnis.Domain;
 namespace Zeugnis.Exchange;
 
 /// <summary>
-/// Die Schuldatei (<c>.zschule</c>): vollständiger Stand der Verwaltung.
+/// Die Schuldatei (<c>.schuldatei</c>): vollständiger Stand der Verwaltung.
 /// Liegt nur verschlüsselt vor; das Kennwort kennt nur die Verwaltung.
 /// </summary>
 public sealed class SchoolFile
@@ -71,7 +71,7 @@ public sealed record ReturnRecord(
     int Applied, int ConflictsTakenIncoming, int ConflictsKeptSchool, int Unchanged);
 
 /// <summary>
-/// Arbeitsauftrag (<c>.zauftrag</c>) für eine Lehrkraft: nur ihre Schüler, nur ihre Felder.
+/// Arbeitsauftrag (<c>.an-lehrkraft</c>) für eine Lehrkraft: nur ihre Schüler, nur ihre Felder.
 /// </summary>
 public sealed class AssignmentFile
 {
@@ -96,7 +96,7 @@ public sealed class AssignmentFile
     public List<StudentReport> Reports { get; set; } = [];
 }
 
-/// <summary>Rückgabe (<c>.zantwort</c>) einer Lehrkraft zu genau einem Arbeitsauftrag.</summary>
+/// <summary>Rückgabe (<c>.an-verwaltung</c>) einer Lehrkraft zu genau einem Arbeitsauftrag.</summary>
 public sealed class ResponseFile
 {
     public const int CurrentFormatVersion = 1;

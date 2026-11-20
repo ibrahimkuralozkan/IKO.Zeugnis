@@ -8,6 +8,21 @@ public class EnvelopeCodecTests
     private readonly EnvelopeCodec _codec = new(new DotNetAeadCipher());
 
     [Fact]
+    public void Dateiendungen_zeigen_den_Empfaenger()
+    {
+        Assert.Equal(".schuldatei", EnvelopeCodec.Extension(EnvelopeKind.School));
+        Assert.Equal(".an-lehrkraft", EnvelopeCodec.Extension(EnvelopeKind.Assignment));
+        Assert.Equal(".an-verwaltung", EnvelopeCodec.Extension(EnvelopeKind.Response));
+    }
+
+    [Fact]
+    public void Auftragsdatei_nennt_Klasse_Bereich_und_Lehrkraft()
+    {
+        var a = new AssignmentFile { ClassName = "3a", Label = "Deutsch", TeacherName = "Herr Ali" };
+        Assert.Equal("Auftrag_3a_Deutsch_Herr_Ali.an-lehrkraft", AssignmentFactory.FileName(a));
+    }
+
+    [Fact]
     public async Task RoundTrip_PreservesSchoolFile()
     {
         var school = TestData.School();

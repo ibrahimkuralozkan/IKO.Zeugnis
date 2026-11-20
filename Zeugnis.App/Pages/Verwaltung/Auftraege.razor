@@ -20,8 +20,8 @@
         @* ---------- Rückgaben ---------- *@
         <div class="card form">
             <h2>Rückgaben einlesen</h2>
-            <p class="muted">Eine oder mehrere <code>.zantwort</code>-Dateien wählen. Kennwörter sind nicht nötig – sie stehen im jeweiligen Auftrag.</p>
-            <InputFile OnChange="LoadReturnsAsync" accept=".zantwort" multiple />
+            <p class="muted">Eine oder mehrere <code>.an-verwaltung</code>-Dateien wählen. Kennwörter sind nicht nötig – sie stehen im jeweiligen Auftrag.</p>
+            <InputFile OnChange="LoadReturnsAsync" accept=".an-verwaltung" multiple />
             @foreach (var (name, message) in _loadErrors)
             {
                 <p class="alert error"><strong>@name:</strong> @message</p>

@@ -41,7 +41,7 @@ jobs:
 
       - name: Sicherheitsprüfung – keine Datendateien im Paket
         run: |
-          if find publish/wwwroot -type f \( -name '*.zschule' -o -name '*.zauftrag' -o -name '*.zantwort' -o -name '*.docx' \) | grep -q .; then
+          if find publish/wwwroot -type f \( -name '*.schuldatei' -o -name '*.an-lehrkraft' -o -name '*.an-verwaltung' -o -name '*.zschule' -o -name '*.zauftrag' -o -name '*.zantwort' -o -name '*.docx' \) | grep -q .; then
             echo "Datendateien im Veröffentlichungspaket gefunden – Abbruch."; exit 1
           fi
 

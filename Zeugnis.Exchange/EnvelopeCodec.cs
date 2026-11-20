@@ -40,9 +40,9 @@ public sealed class EnvelopeCodec(IAeadCipher cipher)
 
     public static string Extension(EnvelopeKind kind) => kind switch
     {
-        EnvelopeKind.School => ".zschule",
-        EnvelopeKind.Assignment => ".zauftrag",
-        EnvelopeKind.Response => ".zantwort",
+        EnvelopeKind.School => ".schuldatei",
+        EnvelopeKind.Assignment => ".an-lehrkraft",
+        EnvelopeKind.Response => ".an-verwaltung",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
