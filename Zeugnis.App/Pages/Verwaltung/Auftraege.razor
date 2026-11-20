@@ -229,7 +229,8 @@
             @if (_created is { } done)
             {
                 <div class="alert success handover">
-                    <div><strong>@done.FileName</strong> wurde heruntergeladen.</div>
+                    <div><strong>@done.FileName</strong> und <strong>@done.SchoolFileName</strong> wurden heruntergeladen.</div>
+                    <div class="muted">Die neue Schuldatei-Revision enthält den Auftrag und ist ab jetzt der aktuelle Verwaltungsstand.</div>
                     @if (done.KnownPassword)
                     {
                         <div>@done.Teacher kennt das Kennwort bereits (gleiches Kennwort wie bei den bisherigen Aufträgen dieses Halbjahres).</div>
@@ -290,12 +291,12 @@
                                         @if (!a.Revoked)
                                         {
                                             <button class="btn" @onclick="() => DownloadAgainAsync(a)">Datei</button>
-                                            <button class="btn" @onclick="() => Extend(a)">+7 Tage</button>
-                                            <button class="btn" @onclick="() => SetClosed(a, true)">Abschließen</button>
+                                            <button class="btn" disabled="@_busy" @onclick="() => ExtendAsync(a)">+7 Tage</button>
+                                            <button class="btn" disabled="@_busy" @onclick="() => SetClosedAsync(a, true)">Abschließen</button>
                                         }
                                         else
                                         {
-                                            <button class="btn" @onclick="() => SetClosed(a, false)">Wieder öffnen</button>
+                                            <button class="btn" disabled="@_busy" @onclick="() => SetClosedAsync(a, false)">Wieder öffnen</button>
                                         }
                                     </td>
                                 </tr>
@@ -311,7 +312,7 @@
 @code {
     private sealed record SectionChoice(string Pattern, string Title, string KindLabel);
     private sealed record SubjectGroup(string Subject, List<SectionChoice> Sections);
-    private sealed record Created(string FileName, string Teacher, string Password, bool KnownPassword);
+    private sealed record Created(string FileName, string SchoolFileName, string Teacher, string Password, bool KnownPassword);
     private sealed record LoadedItem(string Name, LoadedResponse Loaded);
 
     private bool _newOpen;
@@ -447,11 +448,13 @@
         var password = f.Assignments.Single(a => a.AssignmentId == file.AssignmentId).Password;
         // „Bekannt“, wenn die Lehrkraft schon einen Auftrag mit demselben Kennwort hat.
         var known = f.Assignments.Any(a => a.AssignmentId != file.AssignmentId && a.TeacherId == file.TeacherId && a.Password == password);
+        _mustSave = true;
         var bytes = await Codec.SealAsync(file, EnvelopeKind.Assignment, password);
         var name = AssignmentFactory.FileName(file);
         await Files.DownloadAsync(bytes, name);
-        _created = new Created(name, file.TeacherName, password, known);
-        _mustSave = true;
+        var schoolFileName = await SaveSchoolCopyAsync();
+        _created = new Created(name, schoolFileName, file.TeacherName, password, known);
+        Success = "Auftrag und neue Schuldatei-Revision wurden automatisch gespeichert.";
     }
 
     private async Task CreateReviewAsync(string className)
@@ -480,22 +483,44 @@
         Success = "Auftragsdatei erneut erzeugt (mit bereits übernommenen Werten). Kennwort unverändert.";
     }
 
-    private void Extend(IssuedAssignment a)
+    private async Task ExtendAsync(IssuedAssignment a)
     {
+        _busy = true;
         var until = (a.ExpiresUtc < DateTimeOffset.UtcNow ? DateTimeOffset.UtcNow : a.ExpiresUtc).AddDays(7);
-        Change(f =>
+        try
         {
-            a.ExpiresUtc = until;
-            f.Audit.Add(new AuditEntry(DateTimeOffset.UtcNow, "Auftrag verlängert", $"{a.TeacherName} · {a.ClassName} · {a.Label} → {until.ToLocalTime():dd.MM.yyyy}"));
-        }, $"Abgabe verlängert bis {until.ToLocalTime():dd.MM.yyyy}. Die Lehrkraft muss keine neue Datei erhalten.");
+            if (!Change(f =>
+                {
+                    a.ExpiresUtc = until;
+                    f.Audit.Add(new AuditEntry(DateTimeOffset.UtcNow, "Auftrag verlängert", $"{a.TeacherName} · {a.ClassName} · {a.Label} → {until.ToLocalTime():dd.MM.yyyy}"));
+                }))
+                return;
+            _mustSave = true;
+            var name = await SaveSchoolCopyAsync();
+            Success = $"Abgabe verlängert bis {until.ToLocalTime():dd.MM.yyyy}. {name} wurde automatisch gespeichert; die Lehrkraft benötigt keine neue Auftragsdatei.";
+        }
+        finally { _busy = false; }
     }
 
-    private void SetClosed(IssuedAssignment a, bool closed) =>
-        Change(f =>
+    private async Task SetClosedAsync(IssuedAssignment a, bool closed)
+    {
+        _busy = true;
+        try
         {
-            a.Revoked = closed;
-            f.Audit.Add(new AuditEntry(DateTimeOffset.UtcNow, closed ? "Auftrag abgeschlossen" : "Auftrag wieder geöffnet", $"{a.TeacherName} · {a.ClassName} · {a.Label}"));
-        }, closed ? "Auftrag abgeschlossen. Weitere Rückgaben werden nicht mehr angenommen." : "Auftrag wieder geöffnet.");
+            if (!Change(f =>
+                {
+                    a.Revoked = closed;
+                    f.Audit.Add(new AuditEntry(DateTimeOffset.UtcNow, closed ? "Auftrag abgeschlossen" : "Auftrag wieder geöffnet", $"{a.TeacherName} · {a.ClassName} · {a.Label}"));
+                }))
+                return;
+            _mustSave = true;
+            var name = await SaveSchoolCopyAsync();
+            Success = closed
+                ? $"Auftrag abgeschlossen. Weitere Rückgaben werden nicht mehr angenommen. {name} wurde automatisch gespeichert."
+                : $"Auftrag wieder geöffnet. {name} wurde automatisch gespeichert.";
+        }
+        finally { _busy = false; }
+    }
 
     private async Task LoadReturnsAsync(InputFileChangeEventArgs e)
     {
@@ -515,7 +540,7 @@
         }
     }
 
-    private void ApplyReturn(LoadedItem item, IReadOnlyDictionary<(Guid, string), ConflictChoice> choices)
+    private async Task ApplyReturn(LoadedItem item, IReadOnlyDictionary<(Guid, string), ConflictChoice> choices)
     {
         MergeResult? result = null;
         try
@@ -524,9 +549,11 @@
             {
                 _loaded.Remove(item);
                 _mustSave = true;
-                Success = $"Rückgabe von {item.Loaded.Assignment.TeacherName} übernommen: {result.Applied} Werte" +
-                          (result.ConflictsTakenIncoming + result.ConflictsKeptSchool > 0
-                              ? $", Konflikte: {result.ConflictsTakenIncoming} Lehrkraft / {result.ConflictsKeptSchool} Verwaltung." : ".");
+                var summary = $"Rückgabe von {item.Loaded.Assignment.TeacherName} übernommen: {result.Applied} Werte" +
+                              (result.ConflictsTakenIncoming + result.ConflictsKeptSchool > 0
+                                  ? $", Konflikte: {result.ConflictsTakenIncoming} Lehrkraft / {result.ConflictsKeptSchool} Verwaltung." : ".");
+                var name = await SaveSchoolCopyAsync();
+                Success = $"{summary} {name} wurde automatisch gespeichert.";
             }
         }
         catch (ExchangeSecurityException ex) { Error = ex.Message; }
@@ -534,9 +561,24 @@
 
     private async Task SaveSchoolAsync()
     {
-        var (bytes, name) = await Session.SaveAsync();
-        await Files.DownloadAsync(bytes, name);
-        _mustSave = false;
+        var name = await SaveSchoolCopyAsync();
         Success = $"Gespeichert als {name}.";
+    }
+
+    private async Task<string> SaveSchoolCopyAsync()
+    {
+        var (bytes, name) = await Session.SaveAsync();
+        try
+        {
+            await Files.DownloadAsync(bytes, name);
+        }
+        catch
+        {
+            Session.MarkDirty();
+            throw;
+        }
+
+        _mustSave = false;
+        return name;
     }
 }

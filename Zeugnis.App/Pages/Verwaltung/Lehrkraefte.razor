@@ -1,5 +1,6 @@
 @page "/verwaltung/lehrkraefte"
 @inherits AdminPageBase
+@inject FileService Files
 
 <PageTitle>Lehrkräfte – Verwaltung</PageTitle>
 
@@ -56,7 +57,7 @@
                                             else if (_renewId == t.Id)
                                             {
                                                 <span class="small">Neues Kennwort? Bisherige Aufträge behalten ihr Kennwort.</span>
-                                                <button class="btn danger" @onclick="() => Renew(t)">Erneuern</button>
+                                                <button class="btn danger" @onclick="() => RenewAsync(t)">Erneuern</button>
                                                 <button class="btn" @onclick="() => _renewId = null">Abbrechen</button>
                                             }
                                             else
@@ -99,11 +100,24 @@
     private Guid? _showId;
     private Guid? _renewId;
 
-    private void Renew(Teacher t)
+    private async Task RenewAsync(Teacher t)
     {
-        if (Change(f => MasterData.RenewTeacherPassword(f, t.Id, DateTimeOffset.UtcNow),
-                $"Neues Kennwort für {t.DisplayName}. Es gilt für die nächsten Aufträge; bitte der Lehrkraft mitteilen und die Schuldatei speichern."))
+        if (Change(f => MasterData.RenewTeacherPassword(f, t.Id, DateTimeOffset.UtcNow)))
+        {
             _showId = t.Id;
+            var (bytes, name) = await Session.SaveAsync();
+            try
+            {
+                await Files.DownloadAsync(bytes, name);
+            }
+            catch
+            {
+                Session.MarkDirty();
+                throw;
+            }
+
+            Success = $"Neues Kennwort für {t.DisplayName}. Es gilt für die nächsten Aufträge; bitte der Lehrkraft mitteilen. {name} wurde automatisch gespeichert.";
+        }
         _renewId = null;
     }
 

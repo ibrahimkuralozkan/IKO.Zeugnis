@@ -54,6 +54,7 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 - [x] **0.4:** Verwaltung'da görevler: öğretmen, sınıf, öğrenci ve bölüm seçimi; otomatik parola (okul dosyasında saklanır); çakışma uyarısı; dosyayı yeniden üretme, süre uzatma, kapatma. Dönüşler: birden çok dosya, parolasız eşleştirme, önizleme, alan bazında çakışma kararı, dönüş kaydı
 - [x] **0.5:** Word şablonu yükleme ve karne çıktısı (`Zeugnis.Export`, OpenXml, tarayıcıda): öğrenci başına `.docx`, sınıf için ZIP. 0.5.1–0.5.2: sol panel, ana sayfada adım adım açıklama
 - [x] **0.6:** 20 dakika işlem yapılmazsa açık görev/okul dosyası kapanır (2 dakika önce uyarı; kaydedilmemiş okul dosyası önce indirilir), yeni sürüm yalnızca kullanıcı onayıyla yüklenir
+- [x] **0.15:** Auftrag oluşturma, dönüş alma, süre uzatma, kapatma/açma ve öğretmen parolası yenileme sonrasında yeni Schuldatei revizyonu otomatik indirilir
 - [ ] Sonra: iPad gerçek cihaz testi, Word tag yardım ekranı, yeni yarıyıl için okul dosyası devri
 
 ## Kurallar
