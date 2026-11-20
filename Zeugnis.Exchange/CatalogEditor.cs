@@ -121,6 +121,23 @@ public static class CatalogEditor
             Log(f, timestamp, "Bereich verschoben", $"{catalog.Title} · {section.Title}");
     }
 
+    /// <summary>Verschiebt ein Element per Drag-and-drop an eine absolute Einfügeposition.</summary>
+    public static void MoveSectionTo(SchoolFile f, string catalogId, FieldKind kind, string key, int targetIndex,
+        DateTimeOffset? now = null)
+    {
+        var catalog = ById(f, catalogId);
+        var section = Section(f, catalogId, kind, key);
+        var oldIndex = catalog.Sections.IndexOf(section);
+        if (oldIndex < 0) return;
+        var insertion = Math.Clamp(targetIndex, 0, catalog.Sections.Count);
+        if (oldIndex < insertion) insertion--;
+        if (oldIndex == insertion) return;
+        catalog.Sections.RemoveAt(oldIndex);
+        catalog.Sections.Insert(Math.Clamp(insertion, 0, catalog.Sections.Count), section);
+        if (now is { } timestamp)
+            Log(f, timestamp, "Bereich verschoben", $"{catalog.Title} · {section.Title} → Position {insertion + 1}");
+    }
+
     /// <summary>Anzahl eingetragener Werte, die beim Löschen des Bereichs verloren gingen.</summary>
     public static int CountSectionValues(SchoolFile f, string catalogId, FieldKind kind, string key) =>
         UsedValues(f, ById(f, catalogId), Section(f, catalogId, kind, key).FieldKeys()).Count();

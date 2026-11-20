@@ -143,8 +143,14 @@
                 var s = cat.Sections[si];
                 var first = si == 0;
                 var last = si == cat.Sections.Count - 1;
+                <div class="catalog-drop-zone @(_dropIndex == si ? "active" : "")"
+                     @ondragenter="() => EnterDrop(si)" @ondragover:preventDefault
+                     @ondrop="() => DropSection(cat, si)"></div>
                 <section class="card section-card">
                     <div class="section-head">
+                        <span class="drag-handle" draggable="true" title="Element ziehen"
+                              @ondragstart="() => StartDrag(s)" @ondragend="EndDrag"
+                              role="button" aria-label="Element per Drag-and-drop verschieben">⠿</span>
                         <div class="move">
                             <button class="icon-btn" disabled="@first" @onclick="() => Change(x => CatalogEditor.MoveSection(x, cat.Id, s.Kind, s.Key, -1, DateTimeOffset.UtcNow))" aria-label="nach oben">▲</button>
                             <button class="icon-btn" disabled="@last" @onclick="() => Change(x => CatalogEditor.MoveSection(x, cat.Id, s.Kind, s.Key, 1, DateTimeOffset.UtcNow))" aria-label="nach unten">▼</button>
@@ -243,6 +249,12 @@
                     }
                 </section>
             }
+            @if (cat.Sections.Count > 0)
+            {
+                <div class="catalog-drop-zone @(_dropIndex == cat.Sections.Count ? "active" : "")"
+                     @ondragenter="() => EnterDrop(cat.Sections.Count)" @ondragover:preventDefault
+                     @ondrop="() => DropSection(cat, cat.Sections.Count)"></div>
+            }
         }
     }
 </AdminFrame>
@@ -263,6 +275,8 @@
     private string _secSubject = "";
     private FieldKind _secKind = FieldKind.Rating;
     private (FieldKind, string)? _deleteSection;
+    private (FieldKind Kind, string Key)? _dragSection;
+    private int? _dropIndex;
     private (FieldKind, string, string)? _deleteItem;
     private readonly Dictionary<string, string> _newItem = [];
 
@@ -368,6 +382,30 @@
     {
         if (Current is { } c) Change(f => CatalogEditor.RemoveSection(f, c.Id, s.Kind, s.Key, DateTimeOffset.UtcNow), $"„{s.Title}“ entfernt.");
         _deleteSection = null;
+    }
+
+    private void StartDrag(CatalogSection section)
+    {
+        _dragSection = (section.Kind, section.Key);
+        _dropIndex = null;
+    }
+
+    private void EnterDrop(int index)
+    {
+        if (_dragSection is not null) _dropIndex = index;
+    }
+
+    private void DropSection(Catalog catalog, int index)
+    {
+        if (_dragSection is { } dragged)
+            Change(f => CatalogEditor.MoveSectionTo(f, catalog.Id, dragged.Kind, dragged.Key, index, DateTimeOffset.UtcNow));
+        EndDrag();
+    }
+
+    private void EndDrag()
+    {
+        _dragSection = null;
+        _dropIndex = null;
     }
 
     private void AddItem(CatalogSection s)

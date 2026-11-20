@@ -81,6 +81,23 @@ public class CatalogEditorTests
     }
 
     [Fact]
+    public void DragSectionTo_AnyInsertionPoint_ReordersAndRenumbersByPosition()
+    {
+        var (f, c) = Setup();
+        CatalogEditor.AddSection(f, c.Id, "A", "", FieldKind.Text, Now);
+        CatalogEditor.AddSection(f, c.Id, "B", "", FieldKind.Text, Now);
+        CatalogEditor.AddSection(f, c.Id, "C", "", FieldKind.Text, Now);
+        CatalogEditor.AddSection(f, c.Id, "D", "", FieldKind.Text, Now);
+
+        CatalogEditor.MoveSectionTo(f, c.Id, FieldKind.Text, "B", 4, Now);
+        Assert.Equal(["A", "C", "D", "B"], c.Sections.Select(s => s.Key));
+
+        CatalogEditor.MoveSectionTo(f, c.Id, FieldKind.Text, "D", 1, Now);
+        Assert.Equal(["A", "D", "C", "B"], c.Sections.Select(s => s.Key));
+        Assert.Contains(f.Audit, e => e.Action == "Bereich verschoben" && e.Detail.Contains("Position 2"));
+    }
+
+    [Fact]
     public void RemovingSection_DeletesOnlyValuesOfThisGradeAndTrack()
     {
         var (f, c) = Setup();

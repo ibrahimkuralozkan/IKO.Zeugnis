@@ -56,6 +56,7 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 - [x] **0.6:** 20 dakika işlem yapılmazsa açık görev/okul dosyası kapanır (2 dakika önce uyarı; kaydedilmemiş okul dosyası önce indirilir), yeni sürüm yalnızca kullanıcı onayıyla yüklenir
 - [x] **0.15:** Auftrag oluşturma, dönüş alma, süre uzatma, kapatma/açma ve öğretmen parolası yenileme sonrasında yeni Schuldatei revizyonu otomatik indirilir
 - [x] **0.16:** Katalogdaki her not, Ankreuzgruppe, metin, seçim, sayı ve tarih bağımsız bir elemandır; Auftrag seçimi tür/Fach gruplaması yapmadan kullanıcının katalog sırasını aynen korur
+- [x] **0.17:** Katalog elemanları tutma simgesinden sürüklenip listenin herhangi bir aralığına bırakılabilir; element numaraları yeni konuma göre otomatik güncellenir, ▲/▼ alternatifi korunur
 - [ ] Sonra: iPad gerçek cihaz testi, Word tag yardım ekranı, yeni yarıyıl için okul dosyası devri
 
 ## Kurallar
