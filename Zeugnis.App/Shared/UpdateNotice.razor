@@ -1,0 +1,59 @@
+@* Hinweis auf eine neue App-Version. Aktualisiert erst nach Bestätigung,
+   damit keine ungespeicherten Änderungen durch ein Neuladen verloren gehen. *@
+@implements IDisposable
+@inject SchoolSession School
+@inject TeacherSession Teacher
+@inject IJSRuntime JS
+
+@if (_ready && !_dismissed)
+{
+    <div class="banner info" role="status">
+        <span>
+            Eine neue Version der App ist verfügbar.
+            @if (School.IsDirty)
+            {
+                <strong>Bitte zuerst die Schuldatei speichern.</strong>
+            }
+        </span>
+        <button class="btn primary" disabled="@(School.IsDirty || _applying)" @onclick="ApplyAsync">Jetzt aktualisieren</button>
+        <button class="btn" @onclick="() => _dismissed = true">Später</button>
+    </div>
+}
+
+@code {
+    private DotNetObjectReference<UpdateNotice>? _ref;
+    private bool _ready;
+    private bool _dismissed;
+    private bool _applying;
+
+    protected override void OnInitialized() => School.Changed += Refresh;
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _ref = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("zeugnis.sw.watch", _ref);
+    }
+
+    [JSInvokable]
+    public void OnUpdateReady()
+    {
+        _ready = true;
+        _dismissed = false;
+        StateHasChanged();
+    }
+
+    private async Task ApplyAsync()
+    {
+        _applying = true;
+        if (Teacher.IsOpen) await Teacher.SaveDraftAsync(); // Entwurf sichern, bevor neu geladen wird
+        await JS.InvokeVoidAsync("zeugnis.sw.apply");
+    }
+
+    public void Dispose()
+    {
+        School.Changed -= Refresh;
+        _ref?.Dispose();
+    }
+}

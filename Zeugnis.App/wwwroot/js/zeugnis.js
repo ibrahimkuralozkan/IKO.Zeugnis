@@ -62,5 +62,76 @@ window.zeugnis = (() => {
     remove: id => { try { localStorage.removeItem(draftPrefix + id); } catch { } },
   };
 
-  return { encrypt, decrypt, download, isSecure, setUnloadGuard, scrollToMain, draft };
+  // Inaktivität: misst die Zeit seit der letzten Eingabe. Zeitstempel statt Timer,
+  // weil iPad/Safari Timer im Hintergrund anhält; beim Zurückkehren wird sofort geprüft.
+  const idle = (() => {
+    const state = { last: Date.now(), ref: null, warnMs: 0, closeMs: 0, warned: false, timer: 0 };
+    const touch = () => {
+      state.last = Date.now();
+      if (state.warned && state.ref) { state.warned = false; state.ref.invokeMethodAsync("OnIdleReset"); }
+    };
+    ["pointerdown", "keydown", "wheel", "touchstart"].forEach(t =>
+      window.addEventListener(t, touch, { passive: true, capture: true }));
+    const check = () => {
+      if (!state.ref) return;
+      const elapsed = Date.now() - state.last;
+      if (elapsed >= state.closeMs) {
+        const ref = state.ref;
+        stop();
+        ref.invokeMethodAsync("OnIdleTimeout");
+      } else if (elapsed >= state.warnMs) {
+        state.warned = true;
+        state.ref.invokeMethodAsync("OnIdleWarning", Math.ceil((state.closeMs - elapsed) / 1000));
+      }
+    };
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) check(); });
+    function start(ref, warnMs, closeMs) {
+      stop();
+      Object.assign(state, { ref, warnMs, closeMs, warned: false, last: Date.now() });
+      state.timer = setInterval(check, 5000);
+    }
+    function stop() { clearInterval(state.timer); state.ref = null; state.warned = false; }
+    return { start, stop, touch, check, state };
+  })();
+
+  // Updates der installierten App: ein neuer Service Worker wartet, bis die Nutzerin/der Nutzer bestätigt.
+  const sw = (() => {
+    const state = { registration: null, ready: false, ref: null };
+    const markReady = () => {
+      state.ready = true;
+      if (state.ref) state.ref.invokeMethodAsync("OnUpdateReady");
+    };
+    async function register() {
+      if (!("serviceWorker" in navigator)) return;
+      try {
+        const reg = await navigator.serviceWorker.register("service-worker.js");
+        state.registration = reg;
+        if (reg.waiting && navigator.serviceWorker.controller) markReady();
+        reg.addEventListener("updatefound", () => {
+          const worker = reg.installing;
+          worker?.addEventListener("statechange", () => {
+            if (worker.state === "installed" && navigator.serviceWorker.controller) markReady();
+          });
+        });
+        // Regelmäßig und beim Zurückkehren in die App nach einer neuen Version fragen.
+        setInterval(() => reg.update().catch(() => { }), 30 * 60_000);
+        document.addEventListener("visibilitychange", () => { if (!document.hidden) reg.update().catch(() => { }); });
+      } catch (e) {
+        console.warn("Service worker:", e);
+      }
+    }
+    function watch(ref) {
+      state.ref = ref;
+      if (state.ready) ref.invokeMethodAsync("OnUpdateReady");
+    }
+    function apply() {
+      const waiting = state.registration?.waiting;
+      if (!waiting) { location.reload(); return; }
+      navigator.serviceWorker.addEventListener("controllerchange", () => location.reload(), { once: true });
+      waiting.postMessage("SKIP_WAITING");
+    }
+    return { register, watch, apply, markReady, state };
+  })();
+
+  return { encrypt, decrypt, download, isSecure, setUnloadGuard, scrollToMain, draft, idle, sw };
 })();

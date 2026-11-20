@@ -1,0 +1,140 @@
+@* Schließt einen geöffneten Arbeitsauftrag bzw. die Schuldatei nach längerer Inaktivität.
+   Lehrkraft: Eingaben liegen bereits als verschlüsselter Entwurf auf dem Gerät.
+   Verwaltung: ungespeicherte Änderungen werden vorher als neue Revision heruntergeladen. *@
+@implements IAsyncDisposable
+@inject SchoolSession School
+@inject TeacherSession Teacher
+@inject FileService Files
+@inject IJSRuntime JS
+
+@if (_secondsLeft is { } s)
+{
+    <div class="banner warn" role="alert">
+        <span>Keine Eingabe seit längerer Zeit. @Target wird in <strong>@Format(s)</strong> aus Sicherheitsgründen geschlossen.</span>
+        <button class="btn primary" @onclick="StayAsync">Weiterarbeiten</button>
+    </div>
+}
+@if (_notice is not null)
+{
+    <div class="banner info" role="status">
+        <span>@_notice</span>
+        <button class="btn" @onclick="() => _notice = null">OK</button>
+    </div>
+}
+
+@code {
+    public static readonly TimeSpan CloseAfter = TimeSpan.FromMinutes(20);
+    public static readonly TimeSpan WarnBefore = TimeSpan.FromMinutes(2);
+
+    private DotNetObjectReference<IdleGuard>? _ref;
+    private bool _running;
+    private int? _secondsLeft;
+    private string? _notice;
+
+    private bool AnyOpen => School.IsOpen || Teacher.IsOpen;
+    private string Target => School.IsOpen ? "Die Schuldatei" : "Der Arbeitsauftrag";
+
+    protected override void OnInitialized()
+    {
+        School.Changed += Sync;
+        Teacher.Changed += Sync;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) await SyncAsync();
+    }
+
+    private void Sync() => InvokeAsync(SyncAsync);
+
+    private async Task SyncAsync()
+    {
+        if (AnyOpen == _running) return;
+        _running = AnyOpen;
+        if (_running)
+        {
+            _notice = null;
+            _ref ??= DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("zeugnis.idle.start", _ref,
+                (CloseAfter - WarnBefore).TotalMilliseconds, CloseAfter.TotalMilliseconds);
+        }
+        else
+        {
+            _secondsLeft = null;
+            await JS.InvokeVoidAsync("zeugnis.idle.stop");
+        }
+        StateHasChanged();
+    }
+
+    private async Task StayAsync()
+    {
+        _secondsLeft = null;
+        await JS.InvokeVoidAsync("zeugnis.idle.touch");
+    }
+
+    [JSInvokable]
+    public void OnIdleWarning(int secondsLeft)
+    {
+        _secondsLeft = secondsLeft;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnIdleReset()
+    {
+        _secondsLeft = null;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task OnIdleTimeout()
+    {
+        _secondsLeft = null;
+        _running = false; // die JS-Seite hat sich bereits beendet
+        var minutes = (int)CloseAfter.TotalMinutes;
+
+        if (Teacher.IsOpen)
+        {
+            await Teacher.CloseAsync();
+            _notice = $"Der Arbeitsauftrag wurde nach {minutes} Minuten ohne Eingabe geschlossen. " +
+                      "Ihre Eingaben sind verschlüsselt auf diesem Gerät gesichert. Öffnen Sie den Auftrag erneut, um weiterzuarbeiten.";
+        }
+
+        if (School.IsOpen)
+        {
+            string? savedAs = null;
+            if (School.IsDirty)
+            {
+                try
+                {
+                    var (bytes, name) = await School.SaveAsync();
+                    await Files.DownloadAsync(bytes, name);
+                    savedAs = name;
+                }
+                catch (Exception)
+                {
+                    // Ohne gespeicherte Datei nicht schließen, sonst gingen Änderungen verloren.
+                    _notice = "Die Schuldatei konnte nicht automatisch gespeichert werden und bleibt geöffnet. Bitte jetzt speichern.";
+                    await SyncAsync();
+                    return;
+                }
+            }
+            School.Close();
+            _notice = $"Die Schuldatei wurde nach {minutes} Minuten ohne Eingabe geschlossen." +
+                      (savedAs is null ? "" : $" Ungespeicherte Änderungen wurden als „{savedAs}“ heruntergeladen – bitte in LOGINEO ablegen.");
+        }
+
+        StateHasChanged();
+    }
+
+    private static string Format(int seconds) =>
+        seconds >= 60 ? $"{seconds / 60}:{seconds % 60:00} Minuten" : $"{seconds} Sekunden";
+
+    public async ValueTask DisposeAsync()
+    {
+        School.Changed -= Sync;
+        Teacher.Changed -= Sync;
+        try { await JS.InvokeVoidAsync("zeugnis.idle.stop"); } catch (JSException) { }
+        _ref?.Dispose();
+    }
+}

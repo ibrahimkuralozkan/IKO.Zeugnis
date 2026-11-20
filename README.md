@@ -52,8 +52,9 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 - [x] **0.2.1:** Katalog düzenleyici: her sınıf düzeyi ve eğitim yolu için bir katalog; bölümler (işaretleme, not, serbest metin, seçim), kriterler, değerlendirme ölçeği, kopyalama, `.zkatalog` dışa/içe aktarma. Anahtarlar sabit kalır; silinen kimlikler yeniden kullanılmaz
 - [x] **0.3:** Değerlendirme ekranı (iPad öncelikli; öğretmen ve Verwaltung aynı ekranı kullanır): öğrenci listesi ve ilerleme, dokunmatik ölçek/not/seçim düğmeleri, serbest metin, şifreli yerel ara kayıt (sayfa yenilense de veri kaybolmaz), dönüş dosyası oluşturma
 - [x] **0.4:** Verwaltung'da görevler: öğretmen, sınıf, öğrenci ve bölüm seçimi; otomatik parola (okul dosyasında saklanır); çakışma uyarısı; dosyayı yeniden üretme, süre uzatma, kapatma. Dönüşler: birden çok dosya, parolasız eşleştirme, önizleme, alan bazında çakışma kararı, dönüş kaydı
-- [ ] **0.5:** Word şablonu yükleme ve karne çıktısı (`Zeugnis.Export`, OpenXml, tarayıcıda)
-- [ ] Sonra: hareketsizlikte otomatik kapanma, kullanıcı onaylı PWA güncellemesi
+- [x] **0.5:** Word şablonu yükleme ve karne çıktısı (`Zeugnis.Export`, OpenXml, tarayıcıda): öğrenci başına `.docx`, sınıf için ZIP. 0.5.1–0.5.2: sol panel, ana sayfada adım adım açıklama
+- [x] **0.6:** 20 dakika işlem yapılmazsa açık görev/okul dosyası kapanır (2 dakika önce uyarı; kaydedilmemiş okul dosyası önce indirilir), yeni sürüm yalnızca kullanıcı onayıyla yüklenir
+- [ ] Sonra: iPad gerçek cihaz testi, Word tag yardım ekranı, yeni yarıyıl için okul dosyası devri
 
 ## Kurallar
 
