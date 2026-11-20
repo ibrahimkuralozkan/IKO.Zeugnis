@@ -28,7 +28,10 @@ jobs:
       - name: Tests
         run: dotnet test IKO.Zeugnis.sln --configuration Release
 
+      # Ohne eigene Domain liegt die App unter /<Repo-Name>/, mit eigener Domain
+      # (Repository-Variable PAGES_CUSTOM_DOMAIN, z. B. zeugnis.schule.de) im Wurzelverzeichnis.
       - name: Basis-Pfad für GitHub Pages setzen
+        if: vars.PAGES_CUSTOM_DOMAIN == ''
         run: sed -i "s#<base href=\"/\" />#<base href=\"/${{ github.event.repository.name }}/\" />#" Zeugnis.App/wwwroot/index.html
 
       - name: PWA veröffentlichen

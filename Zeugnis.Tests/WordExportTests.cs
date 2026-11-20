@@ -113,9 +113,10 @@ public class WordExportTests
 
         Assert.Contains("Anna Muster", xml);
         Assert.Contains("☒", xml);                 // angekreuzt
-        Assert.Contains("w14:val=\"1\"", xml);
         Assert.DoesNotContain(Unchecked, xml);
-        Assert.Contains(">2</w:t>", xml);                // Note
+        Assert.Contains(">gut</w:t>", xml);              // Note als Wort
+        Assert.DoesNotContain("w:val=\"student.name\"", xml); // gefüllte Felder sind normaler Text
+        Assert.Contains("w:val=\"unbekannt.tag\"", xml);      // unbekannte bleiben als Feld
         Assert.Contains("Sehr engagiert.", xml);
         Assert.Contains(">bleibt</w:t>", xml);           // unbekanntes Tag unverändert
     }
@@ -128,8 +129,86 @@ public class WordExportTests
         f.ReportFor(student.Id).Set("r:Deutsch.Lesen.03", "3", "Verwaltung", DateTimeOffset.UtcNow);
 
         var xml = DocumentXml(TemplateFiller.Fill(Template(), ReportExport.ValuesFor(f, student, Today)));
-        Assert.Contains("w14:val=\"0\"", xml);
         Assert.Contains(Unchecked, xml);
+    }
+
+    /// <summary>Vorlage mit Textmarkierung „●“, Auswahltext, Formatierung, Zeilenumbruch und Kopfzeile.</summary>
+    private static byte[] RichTemplate()
+    {
+        const string ns = "xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"";
+        static string Sdt(string tag, string inner) =>
+            $"<w:sdt><w:sdtPr><w:tag w:val=\"{tag}\"/></w:sdtPr><w:sdtContent>{inner}</w:sdtContent></w:sdt>";
+        const string boldRun = "<w:r><w:rPr><w:b/></w:rPr><w:t>[Text]</w:t></w:r>";
+        var body = $"""
+            <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <w:document {ns}><w:body>
+              <w:p>{Sdt("r:Sport.01#1", "<w:r><w:t>x</w:t></w:r>")}{Sdt("r:Sport.01#2", "<w:r><w:t>x</w:t></w:r>")}</w:p>
+              <w:p>{Sdt("s:Versetzung", "<w:r><w:t>Versetzung</w:t></w:r>")}</w:p>
+              <w:p>{Sdt("t:Allgemein", boldRun)}</w:p>
+              <w:sectPr><w:headerReference w:type="default" r:id="rIdH"/></w:sectPr>
+            </w:body></w:document>
+            """;
+        var header = $"""
+            <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+            <w:hdr {ns}><w:p>{Sdt("student.header", "<w:r><w:t>Kopf</w:t></w:r>")}</w:p></w:hdr>
+            """;
+        return Zip(new Dictionary<string, string>
+        {
+            ["[Content_Types].xml"] = """
+                <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+                  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+                  <Default Extension="xml" ContentType="application/xml"/>
+                  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+                  <Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>
+                </Types>
+                """,
+            ["_rels/.rels"] = """
+                <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+                </Relationships>
+                """,
+            ["word/_rels/document.xml.rels"] = """
+                <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                  <Relationship Id="rIdH" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>
+                </Relationships>
+                """,
+            ["word/document.xml"] = body,
+            ["word/header1.xml"] = header,
+        });
+    }
+
+    [Fact]
+    public void Markierung_Auswahltext_Formatierung_und_Kopfzeile()
+    {
+        var f = School();
+        f.Catalogs.Add(new Catalog
+        {
+            Grade = 3, Track = StudentTrack.Regular,
+            Sections = [new CatalogSection { Key = "Versetzung", Kind = FieldKind.Selection,
+                Items = [new CatalogItem { Id = "versetzt", Text = "{Name} wird in Klasse 4 versetzt ({Schuljahresende})." }] }],
+        });
+        var s = f.Students[0];
+        var now = DateTimeOffset.UtcNow;
+        f.ReportFor(s.Id).Set("r:Sport.01", "2", "Verwaltung", now);
+        f.ReportFor(s.Id).Set("s:Versetzung", "versetzt", "Verwaltung", now);
+        f.ReportFor(s.Id).Set("t:Allgemein", "Zeile eins\nZeile zwei", "Verwaltung", now);
+
+        var result = TemplateFiller.Fill(RichTemplate(), ReportExport.ValuesFor(f, s, Today));
+        using var doc = WordprocessingDocument.Open(new MemoryStream(result), false);
+        var body = doc.MainDocumentPart!.Document!.Body!;
+        var paragraphs = body.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>().ToList();
+
+        Assert.Equal(TemplateFiller.Mark, paragraphs[0].InnerText);   // nur Spalte 2 markiert
+        Assert.Equal("Anna Muster wird in Klasse 4 versetzt (2026).", paragraphs[1].InnerText);
+        var run = paragraphs[2].Descendants<DocumentFormat.OpenXml.Wordprocessing.Run>().Single();
+        Assert.NotNull(run.RunProperties?.Bold);                      // Formatierung bleibt
+        Assert.Single(run.Elements<DocumentFormat.OpenXml.Wordprocessing.Break>());
+        Assert.Equal("Zeile einsZeile zwei", paragraphs[2].InnerText);
+        Assert.Equal("Anna Muster, Klasse 3a, Schuljahr 2025/26, 2. Halbjahr",
+            doc.MainDocumentPart.HeaderParts.Single().Header!.InnerText);
     }
 
     [Fact]

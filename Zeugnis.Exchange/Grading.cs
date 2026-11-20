@@ -35,6 +35,8 @@ public sealed class GradingContext
     }
 
     public IReadOnlyList<Student> Students { get; }
+    /// <summary>Halbjahr, für Platzhalter wie {Schuljahresende}.</summary>
+    public Term? Term { get; init; }
     /// <summary><c>null</c> = alle Felder (Verwaltung).</summary>
     public IReadOnlyList<string>? AllowedFields { get; }
     public string EditorName { get; }
@@ -103,7 +105,8 @@ public sealed class GradingContext
                 return r;
             },
             a.AllowedFields,
-            a.TeacherName);
+            a.TeacherName)
+        { Term = a.Term };
     }
 
     /// <summary>Verwaltung: bearbeitet direkt die Schuldatei, alle Felder einer Klasse.</summary>
@@ -115,6 +118,7 @@ public sealed class GradingContext
             s => CatalogEditor.For(f, cls.Grade, s.Track),
             f.ReportFor,
             null,
-            editorName);
+            editorName)
+        { Term = f.Term };
     }
 }

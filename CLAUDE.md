@@ -6,7 +6,8 @@ Bu dosya yeni bir Claude Code oturumunun (başka bir bilgisayarda da) projeyi he
 ## Kullanıcı ve çalışma kuralları
 
 - **İletişim Türkçe**, uygulama arayüzü **Almanca** (öğretmenler için), kod yorumları Almanca/İngilizce.
-- Bu **tamamen yeni** bir uygulama. Eski projelerden (`IKO.ZeugnisManager.Ipad`, `.Web`, `.V2`, `ZeugnisPilot` …) **kod veya veri alınmaz** – kullanıcı bunu açıkça istedi.
+- Bu **tamamen yeni** bir uygulama. Eski projelerden (`IKO.ZeugnisManager.Ipad`, `.Web`, `.V2`, `ZeugnisPilot` …) **kod alınmaz**.
+  İstisna (kullanıcı kararı 20.11.2026): eski `IKO.ZeugnisManager.Web` uygulamasının **katalog metinleri, Word şablonları ve karne kuralları** yeni uygulamaya taşınabilir. **Öğrenci, öğretmen, not verisi asla.** Taşınan katalog/şablonlar repoya ve yayına girmez; yalnız okul dosyasına içe aktarılır (uygulama boş kalır).
 - Commit/push yalnızca kullanıcı isteyince. Commit mesajı İngilizce, sonunda attribution satırı.
 - Her işlevsel değişiklikte `Directory.Build.props` sürümü artırılır (SemVer). Uyarılar hata sayılır.
 - **Gerçek öğrenci verisi, parolalar, `.schuldatei/.an-lehrkraft/.an-verwaltung` dosyaları asla Git'e girmez.** Testlerde yalnız uydurma veri (`Test-Kennwort-123` vb.).
@@ -57,17 +58,19 @@ Yayın: `.github/workflows/deploy-pwa.yml` – her `main` push'unda test + publi
 
 ## Durum (20.11.2026)
 
-Tamamlanan: v0.1 iskelet/şifreleme/birleştirme · v0.2 temel veriler + CSV · v0.2.1 katalog düzenleyici · v0.3 değerlendirme ekranı + şifreli taslak · v0.4 görevler + dönüş birleştirme (çakışma kararı) · v0.5 Word çıktısı · v0.5.1 sol panel (Lehrkraft/Verwaltung) · v0.5.2 ana sayfada adım adım açıklama · v0.6 hareketsizlikte otomatik kapanma + onaylı PWA güncellemesi · v0.7 yönü gösteren dosya uzantıları.
+Tamamlanan: v0.1 iskelet/şifreleme/birleştirme · v0.2 temel veriler + CSV · v0.2.1 katalog düzenleyici · v0.3 değerlendirme ekranı + şifreli taslak · v0.4 görevler + dönüş birleştirme (çakışma kararı) · v0.5 Word çıktısı · v0.5.1 sol panel (Lehrkraft/Verwaltung) · v0.5.2 ana sayfada adım adım açıklama · v0.6 hareketsizlikte otomatik kapanma + onaylı PWA güncellemesi · v0.7 yönü gösteren dosya uzantıları · v0.8 eski uygulamadan katalog/şablon devri için Word doldurucu geliştirmeleri.
 
 - **Dosya adları (v0.7, kullanıcı kararı)**: uzantı alıcıyı gösterir. `Auftrag_3a_Deutsch_Herr_Ali.an-lehrkraft` (Verwaltung → öğretmen), `Rueckgabe_3a_Deutsch_Herr_Ali_20261120-1430.an-verwaltung` (öğretmen → Verwaltung), `Schuldatei_2026-27_HJ1_R3.schuldatei` (R = revizyon). Eski `.zschule/.zauftrag/.zantwort` artık açılmaz; `.gitignore` ve yayın kontrolü ikisini de dışlar.
 
-- **Word çıktısı (`Zeugnis.Export`)**: şablon `SchoolFile.Templates` içinde, sınıf düzeyi + eğitim yolu başına bir `.docx`. İçerik denetimi tag'leri: `student.name|firstname|lastname|birthdate`, `class.name`, `school.name|address|town`, `term`, `date` ve alan anahtarları (`g:`, `t:`, `s:`, `r:`). İşaret kutusu: `r:Deutsch.Lesen.03#2` (değer 2 ise işaretli). Bilinmeyen tag'ler değiştirilmez. Verwaltung → Zeugnisse: yükleme, öğrenci başına `.docx`, sınıf ZIP.
+- **Word çıktısı (`Zeugnis.Export`)**: şablon `SchoolFile.Templates` içinde, sınıf düzeyi + eğitim yolu başına bir `.docx`. Ana metin + üst/alt bilgi doldurulur, biçim korunur, satır sonu → Word satır sonu, dolan alanlar düz metne çevrilir. Tag'ler: `student.name|firstname|lastname|birthdate|header`, `class.name|teacher`, `school.name|address|town`, `term`, `term.schoolyear|halfyear`, `date` ve alan anahtarları. `g:` → not kelimesi (sehr gut…), `s:` → seçeneğin metni, `t:` metin. `Anahtar#değer`: Word onay kutusu işaretlenir, düz metin alanına `●` yazılır. Seçenek metinlerinde yer tutucular (`ReportText`): `{Name} {Vorname} {Nachname} {Klasse} {Schuljahresende}` (ekranda da). Bilinmeyen tag'ler değiştirilmez. Verwaltung → Zeugnisse: yükleme, öğrenci başına `.docx`, sınıf ZIP.
+- **Eski uygulamadan devir (v0.8)**: repo dışında tek seferlik dönüştürücü (`C:\Temp\claude\legacy\Converter`, eski `CatalogService` + `Katalog.cs` derlenir). Çıktı: `Belgeler\IKO.Zeugnis-Import\{1,2}. Halbjahr\Kataloge_*HJ.zkatalog` + `Word-Vorlagen\KlasseN[_SE]_*HJ.docx` + `Umwandlungsbericht.txt`. 12 katalog/şablon, tüm eski tag'ler eşlendi (`w_X_id_v` → `r:Key.id#v`, `aw_X_Note` → `g:X`, `txt_X` → `t:X`, Versetzung → `s:Versetzung`). 5 basamaklı eski ölçek. 1. HJ şablonlarında Versetzung/Wiederbeginn satırları kaldırıldı. Kataloglar ve şablonlar repoya girmez. **Henüz doldurulmayan** (şablonda sabit tag'leri var): `class.konferenz`, `class.ortdatum`, `class.wiederbeginn`, `student.fehlstunden`, `student.verspaetungen`, K4/1. HJ `student.schulform.*`.
 - **Hareketsizlik (`Shared/IdleGuard.razor`, `zeugnis.idle`)**: 20 dk, 2 dk önce uyarı. Öğretmen: taslak zaten şifreli kayıtlı, görev kapanır. Verwaltung: kaydedilmemiş değişiklik varsa önce yeni revizyon indirilir, sonra kapanır (kaydetme başarısızsa açık kalır). Zaman damgası ile ölçülür (iPad arka plan zamanlayıcıları için).
 - **Güncelleme (`Shared/UpdateNotice.razor`, `zeugnis.sw`)**: yeni service worker bekler; banner'da onaylanınca `SKIP_WAITING` + yeniden yükleme. Okul dosyası kaydedilmemişse düğme kapalı.
 - **Visual Studio**: `launchSettings.json` içindeki "Visual Studio" profili F5'te `dotnet watch run --launch-profile http` çalıştırır (VS `http` profilinde 5000'e düşüyordu). VS'nin sunucusu çalışırken uygulamayı aynı klasörde `dotnet build` ile derleme; sayfa %96'da takılır (SRI). Kontrol için kaynağı geçici klasöre kopyalayıp orada derle/çalıştır.
 
 ## Sıradaki işler (öncelik sırasıyla)
 
+0. **Eski şablonlardaki eksik alanlar**: sınıf düzeyinde Konferenzdatum, Zeugnisdatum (+ yer), Wiederbeginn; öğrenci başına Fehlstunden/unentschuldigt/Verspätungen; K4 1. HJ Schulformempfehlung. Sonra Religion katılımı ve Deutschförderung cümlesi (eskide toggle'lı). Ayrıca dosya alışverişi konusu (hafızada, kullanıcı geri dönmek istiyor).
 1. **iPad gerçek cihaz testi** canlı adreste (Safari, Dosyalar uygulaması, LOGINEO indirme/yükleme, ana ekrana ekleme, çevrimdışı açılış, güncelleme banner'ı).
 2. Word: Verwaltung'da şablonda kullanılabilecek tag'leri listeleyen yardım ekranı; ZIP öncesi eksik alan kontrolü. Öğretmen tarafı hareketsizlik kapanışı tarayıcıda gerçek `.an-lehrkraft` ile henüz denenmedi.
 3. Yeni yarıyıl: önceki okul dosyasından temel verileri ve katalogları kopyalayarak yeni dosya oluşturma.

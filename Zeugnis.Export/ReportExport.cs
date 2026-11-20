@@ -15,20 +15,40 @@ public static class ReportExport
     {
         var report = f.Reports.FirstOrDefault(r => r.StudentId == s.Id);
         var de = CultureInfo.InvariantCulture;
+        var cls = f.Classes.FirstOrDefault(c => c.Name == s.ClassName);
+        var catalog = cls is null ? null : CatalogEditor.For(f, cls.Grade, s.Track);
+        var name = $"{s.FirstName} {s.LastName}".Trim();
+        var halfYear = $"{f.Term.HalfYear}. Halbjahr";
         return tag => tag switch
         {
-            "student.name" => $"{s.FirstName} {s.LastName}",
+            "student.name" => name,
             "student.firstname" => s.FirstName,
             "student.lastname" => s.LastName,
             "student.birthdate" => s.DateOfBirth?.ToString("dd.MM.yyyy", de) ?? "",
+            "student.header" => $"{name}, Klasse {s.ClassName}, Schuljahr {f.Term.SchoolYear}, {halfYear}",
             "class.name" => s.ClassName,
+            "class.teacher" => f.Teachers.FirstOrDefault(t => t.Id == cls?.ClassTeacherId)?.DisplayName ?? "",
             "school.name" => f.School.Name,
             "school.address" => f.School.AddressLine1,
             "school.town" => f.School.Town,
             "term" => f.Term.ToString(),
+            "term.schoolyear" => f.Term.SchoolYear,
+            "term.halfyear" => halfYear,
             "date" => today.ToString("dd.MM.yyyy", de),
-            _ when FieldKey.TryParse(tag, out _) => report?.Get(tag) ?? "",
+            _ when FieldKey.TryParse(tag, out var key) => Field(key, report?.Get(tag) ?? ""),
             _ => null,
+        };
+
+        string Field(FieldKey key, string value) => key.Kind switch
+        {
+            FieldKind.Grade => ReportText.GradeWord(value),
+            // Auswahl: im Zeugnis steht der Text der gewählten Möglichkeit, mit Platzhaltern ersetzt.
+            FieldKind.Selection => catalog?.Sections
+                .FirstOrDefault(x => x.Kind == FieldKind.Selection && x.Key == key.Path)?.Items
+                .FirstOrDefault(i => i.Id == value) is { } option
+                ? ReportText.Fill(option.Text, s, f.Term)
+                : value,
+            _ => value,
         };
     }
 

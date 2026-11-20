@@ -119,7 +119,7 @@ else
                                     @foreach (var opt in g.Items)
                                     {
                                         <button class="chip wide @(sel == opt.Id ? "on" : "")" role="radio" aria-checked="@(sel == opt.Id ? "true" : "false")"
-                                                @onclick="() => Toggle(st, g.Keys[0], opt.Id)">@opt.Text</button>
+                                                @onclick="() => Toggle(st, g.Keys[0], opt.Id)">@ReportText.Fill(opt.Text, st, Context.Term)</button>
                                     }
                                 </div>
                                 break;
