@@ -1,0 +1,196 @@
+@page "/verwaltung/protokoll"
+@inherits AdminPageBase
+
+<PageTitle>Protokoll – Verwaltung</PageTitle>
+
+<AdminFrame>
+    @if (File is { } f)
+    {
+        <div class="card form">
+            <div class="section-head">
+                <div>
+                    <h2>Protokoll</h2>
+                    <p class="muted">Verwaltungs- und Lehrkraftänderungen bleiben getrennt und lassen sich gemeinsam filtern.</p>
+                </div>
+                <button class="btn" type="button" @onclick="ResetFilters">Filter zurücksetzen</button>
+            </div>
+
+            <div class="audit-filters">
+                <label class="field">
+                    <span>Protokoll</span>
+                    <select @bind="_source">
+                        <option value="all">Alle</option>
+                        <option value="admin">Verwaltung</option>
+                        <option value="teacher">Lehrkräfte</option>
+                    </select>
+                </label>
+                <label class="field"><span>Von</span><input type="date" @bind="_from" /></label>
+                <label class="field"><span>Bis</span><input type="date" @bind="_to" /></label>
+                <label class="field">
+                    <span>Lehrkraft</span>
+                    <select @bind="_teacher">
+                        <option value="">Alle</option>
+                        @foreach (var name in TeacherNames(f))
+                        {
+                            <option value="@name">@name</option>
+                        }
+                    </select>
+                </label>
+                <label class="field">
+                    <span>Klasse</span>
+                    <select @bind="_className">
+                        <option value="">Alle</option>
+                        @foreach (var name in ClassNames(f))
+                        {
+                            <option value="@name">@name</option>
+                        }
+                    </select>
+                </label>
+                <label class="field">
+                    <span>Schüler/in</span>
+                    <select @bind="_student">
+                        <option value="">Alle</option>
+                        @foreach (var name in StudentNames(f))
+                        {
+                            <option value="@name">@name</option>
+                        }
+                    </select>
+                </label>
+                <label class="field"><span>Aktion / Feld</span><input @bind="_action" placeholder="z. B. Mathematik" /></label>
+                <label class="field audit-search"><span>Volltext (auch Schlüssel und Rohwerte)</span><input @bind="_search" placeholder="Suchen …" /></label>
+            </div>
+        </div>
+
+        var adminEntries = FilteredAdmin(f).ToList();
+        var teacherEntries = FilteredTeacher(f).ToList();
+        <p class="muted audit-result-count">@((adminEntries.Count + teacherEntries.Count)) Treffer · @adminEntries.Count Verwaltung · @teacherEntries.Count Lehrkraft</p>
+
+        @if (_source is "all" or "admin")
+        {
+            <section class="card">
+                <h2>Verwaltungsprotokoll (@adminEntries.Count)</h2>
+                @if (adminEntries.Count == 0)
+                {
+                    <p class="muted">Keine passenden Verwaltungseinträge.</p>
+                }
+                else
+                {
+                    <div class="audit-list">
+                        @foreach (var e in adminEntries)
+                        {
+                            <article class="audit-entry">
+                                <div class="audit-entry-head"><time>@LocalTime(e.Utc)</time><strong>@e.Action</strong></div>
+                                <div>@e.Detail</div>
+                                @if (HasText(e.ClassName, e.StudentName, e.FieldLabel))
+                                {
+                                    <div class="muted">@Join(" · ", e.ClassName, e.StudentName, e.FieldLabel)</div>
+                                }
+                                @if (e.OldValue is not null || e.NewValue is not null)
+                                {
+                                    <div><span class="muted">Alt:</span> @Display(e.OldDisplay, e.OldValue) <span aria-hidden="true">→</span> <span class="muted">Neu:</span> @Display(e.NewDisplay, e.NewValue)</div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(e.FieldKey))
+                                {
+                                    <div class="small muted mono">@e.FieldKey · Rohwert: @Value(e.OldValue) → @Value(e.NewValue)</div>
+                                }
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+        }
+
+        @if (_source is "all" or "teacher")
+        {
+            <section class="card">
+                <h2>Lehrkraftprotokolle (@teacherEntries.Count)</h2>
+                @if (teacherEntries.Count == 0)
+                {
+                    <p class="muted">Keine passenden Lehrkrafteinträge.</p>
+                }
+                else
+                {
+                    <div class="audit-list">
+                        @foreach (var item in teacherEntries)
+                        {
+                            <article class="audit-entry">
+                                <div class="audit-entry-head"><time>@LocalTime(item.Entry.Utc)</time><strong>@item.Assignment.TeacherName</strong></div>
+                                <div>@item.Entry.ClassName · @item.Entry.StudentName · @item.Entry.FieldLabel</div>
+                                <div><span class="muted">Alt:</span> @Display(item.Entry.OldDisplay, item.Entry.OldValue) <span aria-hidden="true">→</span> <span class="muted">Neu:</span> @Display(item.Entry.NewDisplay, item.Entry.NewValue)</div>
+                                <div class="small muted">Auftrag: @item.Assignment.Label</div>
+                                <div class="small muted mono">@item.Entry.FieldKey · Rohwert: @Value(item.Entry.OldValue) → @Value(item.Entry.NewValue)</div>
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+        }
+    }
+</AdminFrame>
+
+@code {
+    private string _source = "all";
+    private DateTime? _from;
+    private DateTime? _to;
+    private string _teacher = "";
+    private string _className = "";
+    private string _student = "";
+    private string _action = "";
+    private string _search = "";
+
+    private IEnumerable<AuditEntry> FilteredAdmin(SchoolFile file) => file.Audit
+        .Where(_ => string.IsNullOrEmpty(_teacher))
+        .Where(e => DateMatches(e.Utc) && Match(e.ClassName, _className) && Match(e.StudentName, _student))
+        .Where(e => Contains(_action, e.Action, e.FieldLabel, e.FieldKey))
+        .Where(e => Contains(_search, e.Action, e.Detail, e.ClassName, e.StudentName, e.FieldKey, e.FieldLabel,
+            e.OldValue, e.NewValue, e.OldDisplay, e.NewDisplay))
+        .OrderByDescending(e => e.Utc);
+
+    private IEnumerable<(IssuedAssignment Assignment, FieldAuditEntry Entry)> FilteredTeacher(SchoolFile file) => file.Assignments
+        .SelectMany(a => a.TeacherAudit.Select(e => (Assignment: a, Entry: e)))
+        .Where(x => DateMatches(x.Entry.Utc) && Match(x.Assignment.TeacherName, _teacher)
+            && Match(x.Entry.ClassName, _className) && Match(x.Entry.StudentName, _student))
+        .Where(x => Contains(_action, x.Entry.FieldLabel, x.Entry.FieldKey))
+        .Where(x => Contains(_search, x.Assignment.TeacherName, x.Assignment.Label, x.Entry.ClassName,
+            x.Entry.StudentName, x.Entry.FieldKey, x.Entry.FieldLabel, x.Entry.OldValue, x.Entry.NewValue,
+            x.Entry.OldDisplay, x.Entry.NewDisplay))
+        .OrderByDescending(x => x.Entry.Utc);
+
+    private bool DateMatches(DateTimeOffset utc)
+    {
+        var date = utc.ToLocalTime().Date;
+        return (!_from.HasValue || date >= _from.Value.Date)
+            && (!_to.HasValue || date <= _to.Value.Date);
+    }
+
+    private static bool Match(string? value, string filter) => string.IsNullOrEmpty(filter)
+        || string.Equals(value, filter, StringComparison.CurrentCultureIgnoreCase);
+
+    private static bool Contains(string filter, params string?[] values) => string.IsNullOrWhiteSpace(filter)
+        || values.Any(value => value?.Contains(filter.Trim(), StringComparison.CurrentCultureIgnoreCase) == true);
+
+    private static IEnumerable<string> TeacherNames(SchoolFile file) => file.Assignments
+        .Where(a => a.TeacherAudit.Count > 0).Select(a => a.TeacherName).Where(n => !string.IsNullOrWhiteSpace(n))
+        .Distinct(StringComparer.CurrentCultureIgnoreCase).OrderBy(n => n);
+
+    private static IEnumerable<string> ClassNames(SchoolFile file) => file.Audit.Select(e => e.ClassName)
+        .Concat(file.Assignments.SelectMany(a => a.TeacherAudit.Select(e => e.ClassName)))
+        .Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n!).Distinct(StringComparer.CurrentCultureIgnoreCase).OrderBy(n => n);
+
+    private static IEnumerable<string> StudentNames(SchoolFile file) => file.Audit.Select(e => e.StudentName)
+        .Concat(file.Assignments.SelectMany(a => a.TeacherAudit.Select(e => e.StudentName)))
+        .Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n!).Distinct(StringComparer.CurrentCultureIgnoreCase).OrderBy(n => n);
+
+    private static string LocalTime(DateTimeOffset utc) => utc.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss");
+    private static string Display(string? display, string? raw) => string.IsNullOrEmpty(display) ? Value(raw) : display;
+    private static string Value(string? value) => string.IsNullOrEmpty(value) ? "(leer)" : value;
+    private static bool HasText(params string?[] values) => values.Any(v => !string.IsNullOrWhiteSpace(v));
+    private static string Join(string separator, params string?[] values) => string.Join(separator, values.Where(v => !string.IsNullOrWhiteSpace(v)));
+
+    private void ResetFilters()
+    {
+        _source = "all";
+        _from = _to = null;
+        _teacher = _className = _student = _action = _search = "";
+    }
+}
