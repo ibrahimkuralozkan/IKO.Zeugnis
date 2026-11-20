@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Zeugnis.Domain\Zeugnis.Domain.csproj" />
     <ProjectReference Include="..\Zeugnis.Exchange\Zeugnis.Exchange.csproj" />
+    <ProjectReference Include="..\Zeugnis.Export\Zeugnis.Export.csproj" />
   </ItemGroup>
 
 </Project>

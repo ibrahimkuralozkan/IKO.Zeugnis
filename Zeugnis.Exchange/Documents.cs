@@ -24,6 +24,8 @@ public sealed class SchoolFile
     public List<Student> Students { get; set; } = [];
     public List<Catalog> Catalogs { get; set; } = [];
     public List<StudentReport> Reports { get; set; } = [];
+    /// <summary>Word-Vorlagen je Jahrgangsstufe und Bildungsgang.</summary>
+    public List<WordTemplate> Templates { get; set; } = [];
 
     /// <summary>Ausgegebene Arbeitsaufträge mit Ausgangsstand (für Konflikterkennung).</summary>
     public List<IssuedAssignment> Assignments { get; set; } = [];

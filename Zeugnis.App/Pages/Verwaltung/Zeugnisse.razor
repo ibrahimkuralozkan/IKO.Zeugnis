@@ -1,11 +1,37 @@
 @page "/verwaltung/zeugnisse"
 @inherits AdminPageBase
+@using Zeugnis.Export
 
 <PageTitle>Zeugnisse – Verwaltung</PageTitle>
 
 <AdminFrame Error="@Error" Success="@Success">
     @if (File is { } f)
     {
+        <div class="card">
+            <h3>Word-Vorlagen</h3>
+            <p class="muted">
+                Eine .docx-Vorlage je Jahrgangsstufe und Bildungsgang. Felder sind Inhaltssteuerelemente mit einem Tag:
+                <code>student.name</code>, <code>class.name</code>, <code>term</code>, <code>g:Sport</code>, <code>t:Allgemein</code>.
+                Ein Ankreuzfeld bekommt Tag und Wert, z. B. <code>r:Deutsch.Lesen.03#2</code> (angekreuzt bei Wert 2).
+            </p>
+            @if (TemplateSlots(f).Any())
+            {
+                @foreach (var slot in TemplateSlots(f))
+                {
+                    var current = WordTemplates.For(f, slot.Grade, slot.Track);
+                    <div class="template-row" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0" @key="slot">
+                        <strong>Klasse @slot.Grade, @slot.Track</strong>
+                        <span class="muted">@(current?.FileName ?? "keine Vorlage")</span>
+                        <InputFile OnChange="@(e => UploadTemplateAsync(e, slot.Grade, slot.Track))" accept=".docx" />
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="muted">Bitte zuerst <a href="verwaltung/kataloge">Kataloge</a> anlegen.</p>
+            }
+        </div>
+
         @if (f.Classes.Count == 0)
         {
             <div class="card"><p class="muted">Bitte zuerst <a href="verwaltung/klassen">Klassen</a> und <a href="verwaltung/schueler">Schüler</a> anlegen.</p></div>
@@ -22,6 +48,7 @@
                         }
                     </select>
                 </label>
+                <button class="btn" @onclick="DownloadClassAsync" disabled="@(_class is null)">Klasse als ZIP (Word)</button>
                 <p class="muted toolbar-note">
                     Hier bearbeitet die Verwaltung die Werte direkt in der Schuldatei.
                     Änderungen an Feldern, die gerade bei einer Lehrkraft liegen, werden beim Zusammenführen als Konflikt angezeigt.
@@ -31,6 +58,17 @@
             @if (_context is { } ctx)
             {
                 <GradingView @key="_class" Context="ctx" OnChanged="Session.MarkDirty" />
+
+                <div class="card">
+                    <h3>Einzelne Zeugnisse (Word)</h3>
+                    @foreach (var s in ClassStudents(f))
+                    {
+                        <div class="template-row" style="display:flex;gap:12px;align-items:center;margin:4px 0" @key="s.Id">
+                            <span style="flex:1">@s.DisplayName</span>
+                            <button class="btn" @onclick="() => DownloadStudentAsync(s)">Word</button>
+                        </div>
+                    }
+                </div>
             }
         }
     }
@@ -39,6 +77,65 @@
 @code {
     private string? _class;
     private GradingContext? _context;
+
+    [Inject] protected FileService Files { get; set; } = default!;
+
+    private static IEnumerable<(int Grade, StudentTrack Track)> TemplateSlots(SchoolFile f) =>
+        f.Catalogs.Select(c => (c.Grade, c.Track)).Distinct().OrderBy(s => s.Grade).ThenBy(s => s.Track);
+
+    private IEnumerable<Student> ClassStudents(SchoolFile f) =>
+        f.Students.Where(s => s.ClassName == _class).OrderBy(s => s.LastName).ThenBy(s => s.FirstName);
+
+    private async Task UploadTemplateAsync(InputFileChangeEventArgs e, int grade, StudentTrack track)
+    {
+        if (File is null) return;
+        ClearMessages();
+        try
+        {
+            var bytes = await Files.ReadAsync(e.File);
+            TemplateFiller.Validate(bytes);
+            var fields = TemplateFiller.Tags(bytes).Count;
+            WordTemplates.Set(File, grade, track, e.File.Name, bytes, DateTimeOffset.UtcNow);
+            Session.MarkDirty();
+            Success = $"Vorlage „{e.File.Name}“ gespeichert ({fields} Felder erkannt).";
+        }
+        catch (Exception ex) when (ex is InvalidDataException or MasterDataException or ExchangeSecurityException or IOException)
+        {
+            Error = ex.Message;
+        }
+    }
+
+    private async Task DownloadClassAsync()
+    {
+        if (File is null || _class is null) return;
+        ClearMessages();
+        try
+        {
+            var zip = ReportExport.ClassZip(File, _class, Today());
+            await Files.DownloadAsync(zip, $"Zeugnisse_{FileService.SafeFileName(_class)}.zip", "application/zip");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or InvalidDataException or MasterDataException)
+        {
+            Error = ex.Message;
+        }
+    }
+
+    private async Task DownloadStudentAsync(Student s)
+    {
+        if (File is null) return;
+        ClearMessages();
+        try
+        {
+            var docx = ReportExport.Student(File, s, Today());
+            await Files.DownloadAsync(docx, $"{ReportExport.Safe(s.LastName)}_{ReportExport.Safe(s.FirstName)}.docx", ReportExport.DocxMime);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or InvalidDataException or MasterDataException)
+        {
+            Error = ex.Message;
+        }
+    }
+
+    private static DateOnly Today() => DateOnly.FromDateTime(DateTime.Today);
 
     protected override void OnInitialized()
     {

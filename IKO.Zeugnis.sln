@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zeugnis.App", "Zeugnis.App\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zeugnis.Tests", "Zeugnis.Tests\Zeugnis.Tests.csproj", "{E34E630E-9012-49E7-9C2C-D027CD0C21D2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zeugnis.Export", "Zeugnis.Export\Zeugnis.Export.csproj", "{5420BB59-86DA-4851-84D2-C190EE7E997B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,18 @@ Global
 		{E34E630E-9012-49E7-9C2C-D027CD0C21D2}.Release|x64.Build.0 = Release|Any CPU
 		{E34E630E-9012-49E7-9C2C-D027CD0C21D2}.Release|x86.ActiveCfg = Release|Any CPU
 		{E34E630E-9012-49E7-9C2C-D027CD0C21D2}.Release|x86.Build.0 = Release|Any CPU
+		{5420BB59-86DA-4851-84D2-C190EE7E997B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5420BB59-86DA-4851-84D2-C190EE7E997B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5420BB59-86DA-4851-84D2-C190EE7E997B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5420BB59-86DA-4851-84D2-C190EE7E997B}.Debug|x64.Build.0 = Debug|Any CPU
+		{5420BB59-86DA-4851-84D2-C190EE7E997B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5420BB59-86DA-4851-84D2-C190EE7E997B}.Debug|x86.Build.0 = Debug|Any CPU
+		{5420BB59-86DA-4851-84D2-C190EE7E997B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5420BB59-86DA-4851-84D2-C190EE7E997B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5420BB59-86DA-4851-84D2-C190EE7E997B}.Release|x64.ActiveCfg = Release|Any CPU
+		{5420BB59-86DA-4851-84D2-C190EE7E997B}.Release|x64.Build.0 = Release|Any CPU
+		{5420BB59-86DA-4851-84D2-C190EE7E997B}.Release|x86.ActiveCfg = Release|Any CPU
+		{5420BB59-86DA-4851-84D2-C190EE7E997B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
