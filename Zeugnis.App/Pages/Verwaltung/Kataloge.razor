@@ -116,8 +116,8 @@
 
             <form class="card form" @onsubmit="AddSection" @onsubmit:preventDefault>
                 <h2>Element hinzufügen</h2>
-                <div class="row">
-                    <label class="field grow"><span>Titel im Zeugnis</span><input @bind="_secTitle" placeholder="z. B. Deutsch – Lesen" /></label>
+                <div class="element-add-grid">
+                    <label class="field"><span>Titel im Zeugnis</span><input @bind="_secTitle" placeholder="z. B. Deutsch – Lesen" /></label>
                     <label class="field"><span>Fach (für Fachlehrkräfte)</span>
                         <SubjectSelect @bind-Value="_secSubject" Options="Subjects(f, cat)" Label="Fach für den neuen Bereich" />
                     </label>
@@ -130,7 +130,7 @@
                             }
                         </select>
                     </label>
-                    <button class="btn primary align-end" type="submit">Hinzufügen</button>
+                    <button class="btn primary element-add-submit" type="submit">Hinzufügen</button>
                 </div>
                 <p class="muted">Jede Note, Ankreuzgruppe, Bemerkung, Auswahl, Zahl und jedes Datum ist ein eigenes Element. Die Reihenfolge lässt sich anschließend frei mit ▲ und ▼ festlegen.</p>
             </form>

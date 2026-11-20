@@ -243,6 +243,17 @@ tr.row-err td { background: var(--err-bg); color: var(--err-fg); }
 details.scale { margin-top: 1rem; border-top: 1px solid var(--border); padding-top: .75rem; }
 details.scale summary { cursor: pointer; color: var(--muted); }
 details.scale .form { margin-top: .75rem; max-width: 520px; }
+.element-add-grid { display: grid; grid-template-columns: minmax(18rem, 2fr) minmax(14rem, 1fr) minmax(10rem, .7fr) auto; gap: .75rem; align-items: end; }
+.element-add-grid > * { min-width: 0; }
+.element-add-submit { align-self: end; white-space: nowrap; }
+@media (max-width: 900px) {
+    .element-add-grid { grid-template-columns: minmax(16rem, 2fr) minmax(13rem, 1fr); }
+    .element-add-submit { justify-self: start; }
+}
+@media (max-width: 600px) {
+    .element-add-grid { grid-template-columns: minmax(0, 1fr); }
+    .element-add-submit { width: 100%; }
+}
 
 .section-card { padding: 1rem; }
 .section-head { display: flex; gap: .75rem; align-items: flex-start; flex-wrap: wrap; }
