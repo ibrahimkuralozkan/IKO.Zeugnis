@@ -28,6 +28,7 @@ public class GradingTests
         Assert.Equal("g:Sport", gradeAudit.FieldKey);
         Assert.Equal("(leer)", gradeAudit.OldDisplay);
         Assert.Equal("2 – gut", gradeAudit.NewDisplay);
+        Assert.DoesNotContain(anna, ctx.IncompleteStudents());
     }
 
     [Fact]

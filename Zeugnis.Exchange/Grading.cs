@@ -147,6 +147,10 @@ public sealed class GradingContext
 
     public Progress TotalProgress() => Students.Aggregate(new Progress(0, 0), (sum, s) => sum + ProgressOf(s));
 
+    /// <summary>Nur Schüler, bei denen mindestens ein aktuell sichtbares/freigegebenes Feld fehlt.</summary>
+    public IReadOnlyList<Student> IncompleteStudents() =>
+        Students.Where(s => !ProgressOf(s).IsComplete).ToList();
+
     // ---------- Fabriken ----------
 
     /// <summary>Lehrkraft: bearbeitet die Kopie im Arbeitsauftrag.</summary>

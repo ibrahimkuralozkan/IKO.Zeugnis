@@ -18,7 +18,7 @@ else
                 <span style="width:@(Percent(total))%"></span>
             </div>
             <label class="check small-check">
-                <input type="checkbox" @bind="_onlyOpen" />
+                <input type="checkbox" checked="@_onlyOpen" @onchange="ToggleOnlyOpen" />
                 <span>nur unvollständige</span>
             </label>
             <ul>
@@ -47,11 +47,11 @@ else
                     <div class="who">
                         <h2>@st.FirstName @st.LastName</h2>
                         <p class="muted">
-                            @st.ClassName · @Labels.Of(st.Track) · @(index + 1) von @Context.Students.Count ·
+                            @st.ClassName · @Labels.Of(st.Track) · @(index + 1) von @NavigationStudents.Count ·
                             <span class="@(p.IsComplete ? "ok-text" : "")">@p.Filled/@p.Total ausgefüllt</span>
                         </p>
                     </div>
-                    <button class="btn nav" @onclick="() => Step(1)" disabled="@(index == Context.Students.Count - 1)" aria-label="nächster Schüler">›</button>
+                    <button class="btn nav" @onclick="() => Step(1)" disabled="@(index == NavigationStudents.Count - 1)" aria-label="nächster Schüler">›</button>
                 </div>
 
                 @if (Context.CatalogFor(st) is null)
@@ -152,8 +152,12 @@ else
 
                 <div class="step-footer">
                     <button class="btn" @onclick="() => Step(-1)" disabled="@(index == 0)">‹ Vorheriger</button>
-                    <button class="btn primary" @onclick="() => Step(1)" disabled="@(index == Context.Students.Count - 1)">Nächster ›</button>
+                    <button class="btn primary" @onclick="() => Step(1)" disabled="@(index == NavigationStudents.Count - 1)">Nächster ›</button>
                 </div>
+            }
+            else if (_onlyOpen)
+            {
+                <div class="card"><p class="ok-text"><strong>Alle Schüler vollständig.</strong></p></div>
             }
         </div>
     </div>
@@ -171,16 +175,19 @@ else
     {
         get
         {
-            var s = Context.Students.FirstOrDefault(x => x.Id == _currentId) ?? Context.Students.FirstOrDefault();
+            var students = NavigationStudents;
+            var s = students.FirstOrDefault(x => x.Id == _currentId) ?? students.FirstOrDefault();
             _currentId = s?.Id;
             return s;
         }
     }
 
-    private IEnumerable<Student> VisibleStudents =>
-        _onlyOpen ? Context.Students.Where(s => s == Current || !Context.ProgressOf(s).IsComplete) : Context.Students;
+    private IReadOnlyList<Student> NavigationStudents =>
+        _onlyOpen ? Context.IncompleteStudents() : Context.Students;
 
-    private int IndexOf(Student s) => Context.Students.ToList().IndexOf(s);
+    private IEnumerable<Student> VisibleStudents => NavigationStudents;
+
+    private int IndexOf(Student s) => NavigationStudents.ToList().IndexOf(s);
 
     private static int Percent(Progress p) => p.Total == 0 ? 0 : (int)Math.Round(100.0 * p.Filled / p.Total);
 
@@ -196,10 +203,18 @@ else
         await JS.InvokeVoidAsync("zeugnis.scrollToMain");
     }
 
+    private void ToggleOnlyOpen(ChangeEventArgs e)
+    {
+        _onlyOpen = e.Value is true;
+        var students = NavigationStudents;
+        if (students.All(s => s.Id != _currentId)) _currentId = students.FirstOrDefault()?.Id;
+    }
+
     private void Step(int delta)
     {
         if (Current is not { } s) return;
-        var list = Context.Students;
+        var list = NavigationStudents;
+        if (list.Count == 0) return;
         var i = Math.Clamp(IndexOf(s) + delta, 0, list.Count - 1);
         _currentId = list[i].Id;
         _ = JS.InvokeVoidAsync("zeugnis.scrollToMain");
