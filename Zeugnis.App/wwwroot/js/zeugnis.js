@@ -52,6 +52,109 @@ window.zeugnis = (() => {
     if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  // Katalogelemente: Pointer-basierte Sortierung funktioniert mit Maus, Stift und Touch.
+  // Der sichtbare Klon folgt dem Zeiger; die eigentliche Liste wird erst nach dem Loslassen in C# geändert.
+  const catalogSort = (() => {
+    let ref = null;
+    let drag = null;
+
+    const clearTarget = () => {
+      document.querySelectorAll(".catalog-drop-zone.active").forEach(x => x.classList.remove("active"));
+    };
+
+    const cleanup = () => {
+      if (!drag) return;
+      drag.handle.removeEventListener("pointermove", move);
+      drag.handle.removeEventListener("pointerup", end);
+      drag.handle.removeEventListener("pointercancel", cancel);
+      drag.card.classList.remove("is-dragging");
+      drag.container.classList.remove("is-sorting");
+      drag.ghost.remove();
+      clearTarget();
+      drag = null;
+    };
+
+    const targetAt = (x, y) => {
+      const hit = document.elementFromPoint(x, y);
+      const direct = hit?.closest?.(".catalog-drop-zone");
+      if (direct) return direct;
+      const card = hit?.closest?.(".section-card[data-catalog-key]");
+      if (!card || !drag?.container.contains(card)) return null;
+      const cards = [...drag.container.querySelectorAll(".section-card[data-catalog-key]")];
+      const index = cards.indexOf(card);
+      const before = y < card.getBoundingClientRect().top + card.getBoundingClientRect().height / 2;
+      return drag.container.querySelector(`[data-drop-index="${index + (before ? 0 : 1)}"]`);
+    };
+
+    function move(e) {
+      if (!drag || e.pointerId !== drag.pointerId) return;
+      e.preventDefault();
+      drag.ghost.style.left = `${e.clientX - drag.offsetX}px`;
+      drag.ghost.style.top = `${e.clientY - drag.offsetY}px`;
+      clearTarget();
+      drag.target = targetAt(e.clientX, e.clientY);
+      drag.target?.classList.add("active");
+      const edge = 90;
+      const speed = 18;
+      if (e.clientY < edge) window.scrollBy(0, -speed);
+      else if (e.clientY > window.innerHeight - edge) window.scrollBy(0, speed);
+    }
+
+    function finish(e, apply) {
+      if (!drag || e.pointerId !== drag.pointerId) return;
+      e.preventDefault();
+      const current = drag;
+      const index = current.target ? Number(current.target.dataset.dropIndex) : NaN;
+      cleanup();
+      if (apply && Number.isInteger(index) && ref)
+        ref.invokeMethodAsync("OnCatalogDrop", current.kind, current.key, index);
+    }
+
+    function end(e) { finish(e, true); }
+    function cancel(e) { finish(e, false); }
+
+    function down(e) {
+      const handle = e.target.closest?.(".drag-handle");
+      if (!handle || (e.button !== undefined && e.button !== 0)) return;
+      const card = handle.closest(".section-card[data-catalog-key]");
+      const container = handle.closest("[data-catalog-sort]");
+      if (!card || !container) return;
+      e.preventDefault();
+      const rect = card.getBoundingClientRect();
+      const ghost = card.cloneNode(true);
+      ghost.classList.add("catalog-drag-ghost");
+      ghost.removeAttribute("data-catalog-key");
+      ghost.style.width = `${rect.width}px`;
+      ghost.style.left = `${rect.left}px`;
+      ghost.style.top = `${rect.top}px`;
+      ghost.style.height = `${rect.height}px`;
+      document.body.appendChild(ghost);
+      drag = {
+        pointerId: e.pointerId, handle, card, container, ghost,
+        key: card.dataset.catalogKey, kind: card.dataset.catalogKind,
+        offsetX: e.clientX - rect.left, offsetY: e.clientY - rect.top, target: null,
+      };
+      card.classList.add("is-dragging");
+      container.classList.add("is-sorting");
+      handle.setPointerCapture(e.pointerId);
+      handle.addEventListener("pointermove", move, { passive: false });
+      handle.addEventListener("pointerup", end, { passive: false });
+      handle.addEventListener("pointercancel", cancel, { passive: false });
+    }
+
+    const start = dotNetRef => {
+      stop();
+      ref = dotNetRef;
+      document.addEventListener("pointerdown", down, { passive: false });
+    };
+    const stop = () => {
+      cleanup();
+      document.removeEventListener("pointerdown", down);
+      ref = null;
+    };
+    return { start, stop };
+  })();
+
   // Verschlüsselte Entwürfe im Gerätespeicher (Inhalt ist bereits mit dem Auftragskennwort verschlüsselt).
   const draftPrefix = "zeugnis.draft.";
   const draft = {
@@ -133,5 +236,5 @@ window.zeugnis = (() => {
     return { register, watch, apply, markReady, state };
   })();
 
-  return { encrypt, decrypt, download, isSecure, setUnloadGuard, scrollToMain, draft, idle, sw };
+  return { encrypt, decrypt, download, isSecure, setUnloadGuard, scrollToMain, catalogSort, draft, idle, sw };
 })();

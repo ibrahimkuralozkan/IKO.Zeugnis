@@ -1,6 +1,8 @@
 @page "/verwaltung/kataloge"
 @inherits AdminPageBase
+@implements IAsyncDisposable
 @inject FileService Files
+@inject IJSRuntime JS
 
 <PageTitle>Kataloge – Verwaltung</PageTitle>
 
@@ -138,18 +140,16 @@
                 <p class="muted">Dieser Katalog hat noch keine Elemente.</p>
             }
 
-            @for (var si = 0; si < cat.Sections.Count; si++)
-            {
-                var s = cat.Sections[si];
-                var first = si == 0;
-                var last = si == cat.Sections.Count - 1;
-                <div class="catalog-drop-zone @(_dropIndex == si ? "active" : "")"
-                     @ondragenter="() => EnterDrop(si)" @ondragover:preventDefault
-                     @ondrop="() => DropSection(cat, si)"></div>
-                <section class="card section-card">
+            <div class="catalog-elements" data-catalog-sort>
+                @for (var si = 0; si < cat.Sections.Count; si++)
+                {
+                    var s = cat.Sections[si];
+                    var first = si == 0;
+                    var last = si == cat.Sections.Count - 1;
+                    <div class="catalog-drop-zone" data-drop-index="@si"></div>
+                    <section class="card section-card" data-catalog-kind="@s.Kind" data-catalog-key="@s.Key">
                     <div class="section-head">
-                        <span class="drag-handle" draggable="true" title="Element ziehen"
-                              @ondragstart="() => StartDrag(s)" @ondragend="EndDrag"
+                        <span class="drag-handle" title="Element ziehen"
                               role="button" aria-label="Element per Drag-and-drop verschieben">⠿</span>
                         <div class="move">
                             <button class="icon-btn" disabled="@first" @onclick="() => Change(x => CatalogEditor.MoveSection(x, cat.Id, s.Kind, s.Key, -1, DateTimeOffset.UtcNow))" aria-label="nach oben">▲</button>
@@ -247,14 +247,13 @@
                     {
                         <p class="muted small">Freitext, z. B. Bemerkungen.</p>
                     }
-                </section>
-            }
-            @if (cat.Sections.Count > 0)
-            {
-                <div class="catalog-drop-zone @(_dropIndex == cat.Sections.Count ? "active" : "")"
-                     @ondragenter="() => EnterDrop(cat.Sections.Count)" @ondragover:preventDefault
-                     @ondrop="() => DropSection(cat, cat.Sections.Count)"></div>
-            }
+                    </section>
+                }
+                @if (cat.Sections.Count > 0)
+                {
+                    <div class="catalog-drop-zone" data-drop-index="@cat.Sections.Count"></div>
+                }
+            </div>
         }
     }
 </AdminFrame>
@@ -275,10 +274,9 @@
     private string _secSubject = "";
     private FieldKind _secKind = FieldKind.Rating;
     private (FieldKind, string)? _deleteSection;
-    private (FieldKind Kind, string Key)? _dragSection;
-    private int? _dropIndex;
     private (FieldKind, string, string)? _deleteItem;
     private readonly Dictionary<string, string> _newItem = [];
+    private DotNetObjectReference<Kataloge>? _sortRef;
 
     private Catalog? Current
     {
@@ -384,28 +382,18 @@
         _deleteSection = null;
     }
 
-    private void StartDrag(CatalogSection section)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        _dragSection = (section.Kind, section.Key);
-        _dropIndex = null;
+        if (!firstRender) return;
+        _sortRef = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("zeugnis.catalogSort.start", _sortRef);
     }
 
-    private void EnterDrop(int index)
+    [JSInvokable]
+    public void OnCatalogDrop(string kind, string key, int index)
     {
-        if (_dragSection is not null) _dropIndex = index;
-    }
-
-    private void DropSection(Catalog catalog, int index)
-    {
-        if (_dragSection is { } dragged)
-            Change(f => CatalogEditor.MoveSectionTo(f, catalog.Id, dragged.Kind, dragged.Key, index, DateTimeOffset.UtcNow));
-        EndDrag();
-    }
-
-    private void EndDrag()
-    {
-        _dragSection = null;
-        _dropIndex = null;
+        if (Current is not { } catalog || !Enum.TryParse<FieldKind>(kind, out var fieldKind)) return;
+        Change(f => CatalogEditor.MoveSectionTo(f, catalog.Id, fieldKind, key, index, DateTimeOffset.UtcNow));
     }
 
     private void AddItem(CatalogSection s)
@@ -445,5 +433,11 @@
                 _ => $"Übernommen: {string.Join(", ", result.Imported)}. Bereits vorhanden (nicht überschrieben): {string.Join(", ", result.Skipped)}.",
             };
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("zeugnis.catalogSort.stop"); } catch (JSException) { }
+        _sortRef?.Dispose();
     }
 }

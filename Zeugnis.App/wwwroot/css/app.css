@@ -250,6 +250,10 @@ details.scale .form { margin-top: .75rem; max-width: 520px; }
 .drag-handle:active { cursor: grabbing; }
 .catalog-drop-zone { height: 12px; margin: -6px 0; position: relative; z-index: 2; transition: height .12s ease, margin .12s ease, background .12s ease; border-radius: 6px; }
 .catalog-drop-zone.active { height: 30px; margin: 0; background: color-mix(in srgb, var(--primary) 18%, transparent); border: 2px dashed var(--primary); }
+.section-card.is-dragging { opacity: .28; transform: scale(.99); }
+.catalog-drag-ghost { position: fixed; z-index: 10000; pointer-events: none; margin: 0; opacity: .92; transform: rotate(.35deg) scale(1.01); box-shadow: 0 18px 50px rgba(15, 23, 42, .28); transition: none; }
+.catalog-elements.is-sorting .catalog-drop-zone { height: 22px; margin: -2px 0; }
+.catalog-elements.is-sorting, .catalog-elements.is-sorting * { cursor: grabbing !important; }
 .section-fields { flex: 1 1 16rem; min-width: 0; display: flex; flex-direction: column; gap: .4rem; }
 .title-input { font-weight: 700; font-size: 1.05rem; }
 .meta { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; font-size: .88rem; color: var(--muted); }
