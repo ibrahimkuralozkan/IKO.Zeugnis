@@ -8,8 +8,20 @@
         </a>
         <span class="version">v@(AppInfo.Version)</span>
     </header>
-    <main class="content">
-        @Body
-    </main>
+    <div class="frame">
+        <nav class="sidebar" aria-label="Bereiche">
+            <NavLink class="side-link" href="lehrkraft" Match="NavLinkMatch.Prefix">
+                <span class="side-icon" aria-hidden="true">✎</span>
+                <span>Lehrkraft</span>
+            </NavLink>
+            <NavLink class="side-link" href="verwaltung" Match="NavLinkMatch.Prefix">
+                <span class="side-icon" aria-hidden="true">⚙</span>
+                <span>Verwaltung</span>
+            </NavLink>
+        </nav>
+        <main class="content">
+            @Body
+        </main>
+    </div>
 </div>
 <UnloadGuard />

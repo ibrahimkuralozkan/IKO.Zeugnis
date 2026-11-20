@@ -66,7 +66,34 @@ code { font-size: .9em; background: var(--info-bg); color: var(--info-fg); paddi
     background: var(--primary); color: var(--primary-text); font-weight: 800;
 }
 .version { color: var(--muted); font-size: .85rem; }
-.content { width: 100%; max-width: 1100px; margin: 0 auto; padding: 1.5rem max(1rem, env(safe-area-inset-left)) 3rem; }
+.content { width: 100%; max-width: 1100px; margin: 0 auto; padding: 1.5rem max(1rem, env(safe-area-inset-left)) 3rem; min-width: 0; }
+h1:focus { outline: none; } /* FocusOnNavigate setzt den Fokus auf h1 */
+
+/* Seitenleiste: Lehrkraft / Verwaltung */
+.frame { flex: 1; display: flex; min-height: 0; }
+.sidebar {
+    flex: 0 0 210px; display: flex; flex-direction: column; gap: .25rem;
+    padding: 1rem .75rem 1rem max(.75rem, env(safe-area-inset-left));
+    background: var(--surface); border-right: 1px solid var(--border);
+}
+.side-link {
+    display: flex; align-items: center; gap: .65rem; min-height: 44px;
+    padding: .55rem .8rem; border-radius: 10px;
+    color: var(--text); text-decoration: none; font-weight: 600;
+}
+.side-link:hover { background: var(--info-bg); }
+.side-link.active { background: var(--primary); color: var(--primary-text); }
+.side-icon { width: 1.3rem; text-align: center; }
+
+@media (max-width: 768px) {
+    .frame { flex-direction: column; }
+    .sidebar {
+        flex: 0 0 auto; flex-direction: row; gap: .5rem;
+        padding: .5rem max(1rem, env(safe-area-inset-left));
+        border-right: 0; border-bottom: 1px solid var(--border);
+    }
+    .side-link { flex: 1; justify-content: center; }
+}
 
 /* Karten */
 .card {
