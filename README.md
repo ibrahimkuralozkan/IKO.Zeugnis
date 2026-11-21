@@ -75,6 +75,7 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 - [x] **0.24.1:** Öğrenci değiştirme yalnız soldaki listede bırakıldı; üst/alt önceki-sonraki kontrolleri ve gereksiz interaktif çalışma görünümü açıklaması kaldırıldı
 - [x] **0.25:** Karne başlığı PDF şablonundaki hiyerarşiye uyarlandı: büyük okul adı, adres/telefon, `Zeugnis Klasse N`, öğrenci adı; her Ankreuzbewertung bölümünde öğrenci adı tekrar gösterilir
 - [x] **0.26:** Okul dosyasına sol/sağ logo yükleme; logolar şifreli Schuldatei ve Auftrag içinde taşınır ve karne başlığında PDF düzenine uygun gösterilir
+- [x] **0.26.1:** Tekrarlanan üst öğrenci bilgi kartı kaldırıldı; Ankreuzbewertung bölüm/öğrenci adı tablonun sol üst hücresine alındı ve ölçek sütunu çizgileri tam yüksekliğe uzatıldı
 - [ ] Sonra: iPad gerçek cihaz testi, Word tag yardım ekranı, yeni yarıyıl için okul dosyası devri
 
 ## Kurallar

@@ -73,19 +73,8 @@ else
         <div class="grading-main report-view">
             @if (Current is { } st)
             {
-                var p = Context.ProgressOf(st);
                 var sections = Context.SectionsFor(st);
                 var schoolGrade = Context.CatalogFor(st)?.Grade;
-                <div class="student-head card">
-                    <div class="who">
-                        <h2>@st.FirstName @st.LastName</h2>
-                        <p class="muted">
-                            @st.ClassName · @Labels.Of(st.Track) ·
-                            <span class="@(p.IsComplete ? "ok-text" : "")">@p.Filled/@p.Total ausgefüllt</span>
-                        </p>
-                    </div>
-                </div>
-
                 <header class="report-preview-head">
                     <div class="report-branding">
                         <div class="report-logo-slot">@if (!string.IsNullOrWhiteSpace(SchoolLeftLogoDataUrl)) {<img src="@SchoolLeftLogoDataUrl" alt="Linkes Schullogo" />}</div>
@@ -126,10 +115,9 @@ else
                     <section id="@(g.Section.Kind == FieldKind.Rating ? null : FieldAnchor(st, g.Keys[0]))"
                              class="card grade-section @(incompleteElement ? "incomplete-element" : "")"
                              @key="@($"{st.Id}|{g.Section.Kind}|{g.Section.Key}")">
-                        <h3>@g.Section.Title</h3>
-                        @if (g.Section.Kind == FieldKind.Rating)
+                        @if (g.Section.Kind != FieldKind.Rating)
                         {
-                            <p class="section-student">@st.FirstName @st.LastName</p>
+                            <h3>@g.Section.Title</h3>
                         }
                         @if (Context.AuthorsOf(st, g.Keys) is { Count: > 0 } authors)
                         {
@@ -139,8 +127,11 @@ else
                         {
                             case FieldKind.Rating:
                                 <div class="rating-table" style="--steps:@scale.Count">
-                                    <div class="rating-head" aria-hidden="true">
-                                        <span></span>
+                                    <div class="rating-head">
+                                        <span class="rating-title">
+                                            <strong>@g.Section.Title</strong>
+                                            <b>@st.FirstName @st.LastName</b>
+                                        </span>
                                         @foreach (var label in scale)
                                         {
                                             <span>@label</span>
