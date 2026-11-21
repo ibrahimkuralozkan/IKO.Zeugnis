@@ -52,6 +52,17 @@ window.zeugnis = (() => {
     if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const scrollToField = id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.remove("field-jump-highlight");
+    void el.offsetWidth;
+    el.classList.add("field-jump-highlight");
+    setTimeout(() => el.classList.remove("field-jump-highlight"), 1800);
+    setTimeout(() => el.querySelector("button, input, textarea, select")?.focus({ preventScroll: true }), 450);
+  };
+
   // Katalogelemente: Pointer-basierte Sortierung funktioniert mit Maus, Stift und Touch.
   // Der sichtbare Klon folgt dem Zeiger; die eigentliche Liste wird erst nach dem Loslassen in C# geändert.
   const catalogSort = (() => {
@@ -236,5 +247,5 @@ window.zeugnis = (() => {
     return { register, watch, apply, markReady, state };
   })();
 
-  return { encrypt, decrypt, download, isSecure, setUnloadGuard, scrollToMain, catalogSort, draft, idle, sw };
+  return { encrypt, decrypt, download, isSecure, setUnloadGuard, scrollToMain, scrollToField, catalogSort, draft, idle, sw };
 })();

@@ -5,6 +5,9 @@ namespace Zeugnis.Exchange;
 /// <summary>Ein Bereich, wie er beim Bewerten angezeigt wird (nur freigegebene Kriterien).</summary>
 public sealed record GradingSection(CatalogSection Section, IReadOnlyList<CatalogItem> Items, IReadOnlyList<string> Keys);
 
+/// <summary>Ein einzelnes auszufüllendes Feld mit lesbarer Bezeichnung und aktuellem Status.</summary>
+public sealed record GradingFieldStatus(string Key, string Label, bool IsFilled);
+
 public readonly record struct Progress(int Filled, int Total)
 {
     public bool IsComplete => Total > 0 && Filled >= Total;
@@ -140,9 +143,37 @@ public sealed class GradingContext
 
     public Progress ProgressOf(Student s)
     {
+        var fields = FieldStatusesFor(s);
+        return new Progress(fields.Count(f => f.IsFilled), fields.Count);
+    }
+
+    /// <summary>Alle sichtbaren und freigegebenen Einzelfelder in Katalogreihenfolge.</summary>
+    public IReadOnlyList<GradingFieldStatus> FieldStatusesFor(Student s)
+    {
         var report = ReportFor(s);
-        var keys = SectionsFor(s).SelectMany(x => x.Keys).ToList();
-        return new Progress(keys.Count(k => (report.Get(k) ?? "").Length > 0), keys.Count);
+        var result = new List<GradingFieldStatus>();
+        foreach (var group in SectionsFor(s))
+        {
+            var subject = string.IsNullOrWhiteSpace(group.Section.Subject) ? "Allgemein" : group.Section.Subject;
+            if (group.Section.Kind == FieldKind.Rating)
+            {
+                for (var i = 0; i < group.Keys.Count; i++)
+                    result.Add(new GradingFieldStatus(group.Keys[i],
+                        $"{subject}: {group.Section.Title} – {group.Items[i].Text}",
+                        (report.Get(group.Keys[i]) ?? "").Length > 0));
+            }
+            else
+            {
+                var kind = group.Section.Kind switch
+                {
+                    FieldKind.Grade => "Note", FieldKind.Text => "Text", FieldKind.Selection => "Auswahl",
+                    FieldKind.Number => "Zahl", FieldKind.Date => "Datum", _ => group.Section.Kind.ToString(),
+                };
+                result.Add(new GradingFieldStatus(group.Keys[0], $"{subject}: {group.Section.Title} ({kind})",
+                    (report.Get(group.Keys[0]) ?? "").Length > 0));
+            }
+        }
+        return result;
     }
 
     public Progress TotalProgress() => Students.Aggregate(new Progress(0, 0), (sum, s) => sum + ProgressOf(s));

@@ -29,6 +29,10 @@ public class GradingTests
         Assert.Equal("(leer)", gradeAudit.OldDisplay);
         Assert.Equal("2 – gut", gradeAudit.NewDisplay);
         Assert.DoesNotContain(anna, ctx.IncompleteStudents());
+        var statuses = ctx.FieldStatusesFor(anna);
+        Assert.Equal(2, statuses.Count);
+        Assert.All(statuses, field => Assert.True(field.IsFilled));
+        Assert.Contains(statuses, field => field.Key == "g:Sport" && field.Label.Contains("Sport") && field.Label.Contains("Note"));
     }
 
     [Fact]

@@ -42,6 +42,7 @@ else
                 var index = IndexOf(st);
                 var p = Context.ProgressOf(st);
                 var sections = Context.SectionsFor(st);
+                var fieldStatuses = Context.FieldStatusesFor(st);
                 <div class="student-head card">
                     <button class="btn nav" @onclick="() => Step(-1)" disabled="@(index == 0)" aria-label="vorheriger Schüler">‹</button>
                     <div class="who">
@@ -52,6 +53,35 @@ else
                         </p>
                     </div>
                     <button class="btn nav" @onclick="() => Step(1)" disabled="@(index == NavigationStudents.Count - 1)" aria-label="nächster Schüler">›</button>
+                </div>
+
+                <div class="evaluation-summary card">
+                    <div class="evaluation-metrics" aria-label="Bewertungsfortschritt">
+                        <div class="evaluation-metric total"><span>Zu bewerten</span><strong>@p.Total</strong></div>
+                        <button class="evaluation-metric open @(_fieldList == "open" ? "active" : "")" type="button"
+                                disabled="@(p.Total - p.Filled == 0)" @onclick="() => ToggleFieldList("open")">
+                            <span>Offen</span><strong>@(p.Total - p.Filled)</strong><span aria-hidden="true">▾</span>
+                        </button>
+                        <button class="evaluation-metric done @(_fieldList == "done" ? "active" : "")" type="button"
+                                disabled="@(p.Filled == 0)" @onclick="() => ToggleFieldList("done")">
+                            <span>Bewertet</span><strong>@p.Filled</strong><span aria-hidden="true">▾</span>
+                        </button>
+                    </div>
+                    @if (_fieldList is { } listKind)
+                    {
+                        var showFilled = listKind == "done";
+                        var listed = fieldStatuses.Where(f => f.IsFilled == showFilled).ToList();
+                        <div class="evaluation-popover">
+                            <h3>@(showFilled ? $"Bereits bewertete Felder ({listed.Count})" : $"Noch offene Felder ({listed.Count})")</h3>
+                            <div class="evaluation-field-list">
+                                @foreach (var field in listed)
+                                {
+                                    <button class="evaluation-field @(showFilled ? "done" : "open")" type="button"
+                                            @onclick="() => JumpToField(st, field.Key)">@field.Label</button>
+                                }
+                            </div>
+                        </div>
+                    }
                 </div>
 
                 @if (Context.CatalogFor(st) is null)
@@ -67,7 +97,8 @@ else
                 {
                     var scale = Context.CatalogFor(st)!.RatingScale;
                     var incompleteElement = g.Section.Kind != FieldKind.Rating && g.Keys.Any(key => Context.Get(st, key).Length == 0);
-                    <section class="card grade-section @(incompleteElement ? "incomplete-element" : "")"
+                    <section id="@(g.Section.Kind == FieldKind.Rating ? null : FieldAnchor(st, g.Keys[0]))"
+                             class="card grade-section @(incompleteElement ? "incomplete-element" : "")"
                              @key="@($"{st.Id}|{g.Section.Kind}|{g.Section.Key}")">
                         <h3>@g.Section.Title</h3>
                         @if (Context.AuthorsOf(st, g.Keys) is { Count: > 0 } authors)
@@ -90,7 +121,7 @@ else
                                         var item = g.Items[i];
                                         var key = g.Keys[i];
                                         var value = Context.Get(st, key);
-                                        <div class="rating-row @(value.Length == 0 ? "empty" : "")" role="radiogroup" aria-label="@item.Text">
+                                        <div id="@FieldAnchor(st, key)" class="rating-row @(value.Length == 0 ? "empty" : "")" role="radiogroup" aria-label="@item.Text">
                                             <span class="criterion">@item.Text</span>
                                             @for (var n = 1; n <= scale.Count; n++)
                                             {
@@ -174,6 +205,7 @@ else
 
     private Guid? _currentId;
     private bool _onlyOpen;
+    private string? _fieldList;
 
     private Student? Current
     {
@@ -204,12 +236,25 @@ else
     private async Task Select(Student s)
     {
         _currentId = s.Id;
+        _fieldList = null;
         await JS.InvokeVoidAsync("zeugnis.scrollToMain");
     }
+
+    private void ToggleFieldList(string kind) => _fieldList = _fieldList == kind ? null : kind;
+
+    private async Task JumpToField(Student student, string key)
+    {
+        _fieldList = null;
+        await JS.InvokeVoidAsync("zeugnis.scrollToField", FieldAnchor(student, key));
+    }
+
+    private static string FieldAnchor(Student student, string key) =>
+        $"field-{student.Id:N}-{string.Concat(key.Select(c => char.IsAsciiLetterOrDigit(c) ? c : '-'))}";
 
     private void ToggleOnlyOpen(ChangeEventArgs e)
     {
         _onlyOpen = e.Value is true;
+        _fieldList = null;
         var students = NavigationStudents;
         if (students.All(s => s.Id != _currentId)) _currentId = students.FirstOrDefault()?.Id;
     }
@@ -221,6 +266,7 @@ else
         if (list.Count == 0) return;
         var i = Math.Clamp(IndexOf(s) + delta, 0, list.Count - 1);
         _currentId = list[i].Id;
+        _fieldList = null;
         _ = JS.InvokeVoidAsync("zeugnis.scrollToMain");
     }
 

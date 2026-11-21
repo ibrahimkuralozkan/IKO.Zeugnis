@@ -64,6 +64,7 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 - [x] **0.18.2:** `nur unvollständige` filtresi tamamlanmış seçili öğrenciyi artık istisna olarak göstermez; liste ve gezinme yalnız gerçekten eksik öğrencileri içerir
 - [x] **0.19:** Lehrkraft ve Verwaltung değerlendirme ekranlarında boş Ankreuz satırları ile boş Note/Text/Auswahl/Zahl/Datum elementleri açık turuncu vurgulanır; doldurulunca vurgu kalkar
 - [x] **0.19.1:** Not alanlarında `sehr gut`–`ungenügend` açıklamaları ilgili 1–6 düğmelerinin üzerinde sabit gösterilir; seçili değer yalnız mavi vurguyla belirtilir
+- [x] **0.20:** Seçili öğrenci için toplam/açık/değerlendirilmiş alan sayaçları ve tıklanabilir alan listeleri; listeden ilgili elemente veya Ankreuz satırına doğrudan kaydırma
 - [ ] Sonra: iPad gerçek cihaz testi, Word tag yardım ekranı, yeni yarıyıl için okul dosyası devri
 
 ## Kurallar
