@@ -27,6 +27,8 @@ public class AssignmentWorkflowTests
         school.School.AddressLine1 = "Teststraße 12";
         school.School.AddressLine2 = "45123 Teststadt";
         school.School.Phone = "0201 123456";
+        school.School.LeftLogoDataUrl = "data:image/png;base64,bGlua3M=";
+        school.School.RightLogoDataUrl = "data:image/png;base64,cmVjaHRz";
         var anna = school.Students[0].Id;
         school.ReportFor(anna).Set("g:Sport", "3", "Verwaltung", TestData.Now);
 
@@ -40,6 +42,8 @@ public class AssignmentWorkflowTests
         Assert.Equal("Teststraße 12", rebuilt.SchoolAddressLine1);
         Assert.Equal("45123 Teststadt", rebuilt.SchoolAddressLine2);
         Assert.Equal("0201 123456", rebuilt.SchoolPhone);
+        Assert.Equal(school.School.LeftLogoDataUrl, rebuilt.SchoolLeftLogoDataUrl);
+        Assert.Equal(school.School.RightLogoDataUrl, rebuilt.SchoolRightLogoDataUrl);
         Assert.Equal(file.Students.Select(s => s.Id), rebuilt.Students.Select(s => s.Id));
         Assert.Equal("3", rebuilt.Reports.Single(r => r.StudentId == anna).Get("g:Sport"));
     }

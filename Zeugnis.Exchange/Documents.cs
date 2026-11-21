@@ -100,6 +100,8 @@ public sealed class AssignmentFile
     public string SchoolAddressLine1 { get; set; } = "";
     public string SchoolAddressLine2 { get; set; } = "";
     public string SchoolPhone { get; set; } = "";
+    public string SchoolLeftLogoDataUrl { get; set; } = "";
+    public string SchoolRightLogoDataUrl { get; set; } = "";
     public Guid TeacherId { get; set; }
     public string TeacherName { get; set; } = "";
     /// <summary>Anzeige, z. B. „3a“ oder „3a, 3b“.</summary>

@@ -145,6 +145,8 @@ public static class AssignmentFactory
             SchoolAddressLine1 = school.School.AddressLine1,
             SchoolAddressLine2 = school.School.AddressLine2,
             SchoolPhone = school.School.Phone,
+            SchoolLeftLogoDataUrl = school.School.LeftLogoDataUrl,
+            SchoolRightLogoDataUrl = school.School.RightLogoDataUrl,
             TeacherId = issued.TeacherId,
             TeacherName = issued.TeacherName,
             ClassName = issued.ClassName,

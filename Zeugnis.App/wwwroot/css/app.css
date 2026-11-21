@@ -409,6 +409,9 @@ button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active {
 .report-view .evaluation-summary { border-width: 0 0 1px; border-radius: 0; }
 .report-preview-head { padding: 2.1rem 1rem 1.5rem; text-align: center; border-bottom: 2px solid #182033; }
 .report-preview-head p { margin: .25rem 0; }
+.report-branding { display: grid; grid-template-columns: minmax(90px, 180px) minmax(0, 1fr) minmax(90px, 180px); gap: 1rem; align-items: center; }
+.report-logo-slot { display: grid; place-items: center; min-height: 140px; }
+.report-logo-slot img { display: block; max-width: 100%; max-height: 170px; object-fit: contain; }
 .report-preview-head .report-school { font-size: clamp(1.75rem, 3.2vw, 3rem); line-height: 1.1; font-weight: 800; }
 .report-preview-head .report-address { margin-top: .75rem; font-size: .95rem; }
 .report-preview-head h1 { margin: 1.2rem 0 .25rem; font-size: clamp(1.8rem, 2.7vw, 2.5rem); }
@@ -462,6 +465,9 @@ button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active {
 @media (max-width: 640px) {
     .grading-main.report-view { padding: .75rem; }
     .report-preview-head { padding: 1.3rem .25rem 1rem; }
+    .report-branding { grid-template-columns: 64px minmax(0, 1fr) 64px; gap: .4rem; }
+    .report-logo-slot { min-height: 72px; }
+    .report-logo-slot img { max-height: 78px; }
     .report-meta { flex-direction: column; gap: .35rem; }
     .evaluation-metrics { justify-content: stretch; }
     .evaluation-metric { flex: 1 1 30%; justify-content: center; padding-inline: .4rem; }
@@ -476,6 +482,11 @@ button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active {
     .choice .mark { font-size: 1.1rem; }
     .choice.on .lbl { color: var(--primary-text); }
 }
+
+.school-logo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.school-logo-field { display: grid; gap: .5rem; align-content: start; padding: .75rem; border: 1px solid var(--border); border-radius: 12px; }
+.school-logo-field img { width: 100%; height: 130px; object-fit: contain; background: #fff; border-radius: 8px; }
+@media (max-width: 600px) { .school-logo-grid { grid-template-columns: 1fr; } }
 
 /* ---------- Aufträge (v0.4) ---------- */
 fieldset.choose { border: 1px solid var(--border); border-radius: 12px; padding: .75rem 1rem 1rem; margin: 0; min-width: 0; }

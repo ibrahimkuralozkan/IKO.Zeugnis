@@ -87,14 +87,20 @@ else
                 </div>
 
                 <header class="report-preview-head">
-                    <p class="report-school">@(string.IsNullOrWhiteSpace(SchoolName) ? "Schule" : SchoolName)</p>
-                    @if (!string.IsNullOrWhiteSpace(SchoolAddressLine1) || !string.IsNullOrWhiteSpace(SchoolAddressLine2) || !string.IsNullOrWhiteSpace(SchoolPhone))
-                    {
-                        <p class="report-address">
-                            @SchoolAddressLine1@if (!string.IsNullOrWhiteSpace(SchoolAddressLine1) && !string.IsNullOrWhiteSpace(SchoolAddressLine2)) {<text>, </text>}@SchoolAddressLine2
-                            @if (!string.IsNullOrWhiteSpace(SchoolPhone)) {<text> · Tel. @SchoolPhone</text>}
-                        </p>
-                    }
+                    <div class="report-branding">
+                        <div class="report-logo-slot">@if (!string.IsNullOrWhiteSpace(SchoolLeftLogoDataUrl)) {<img src="@SchoolLeftLogoDataUrl" alt="Linkes Schullogo" />}</div>
+                        <div class="report-school-info">
+                            <p class="report-school">@(string.IsNullOrWhiteSpace(SchoolName) ? "Schule" : SchoolName)</p>
+                            @if (!string.IsNullOrWhiteSpace(SchoolAddressLine1) || !string.IsNullOrWhiteSpace(SchoolAddressLine2) || !string.IsNullOrWhiteSpace(SchoolPhone))
+                            {
+                                <p class="report-address">
+                                    @SchoolAddressLine1@if (!string.IsNullOrWhiteSpace(SchoolAddressLine1) && !string.IsNullOrWhiteSpace(SchoolAddressLine2)) {<text>, </text>}@SchoolAddressLine2
+                                    @if (!string.IsNullOrWhiteSpace(SchoolPhone)) {<text> · Tel. @SchoolPhone</text>}
+                                </p>
+                            }
+                        </div>
+                        <div class="report-logo-slot">@if (!string.IsNullOrWhiteSpace(SchoolRightLogoDataUrl)) {<img src="@SchoolRightLogoDataUrl" alt="Rechtes Schullogo" />}</div>
+                    </div>
                     <h1>Zeugnis@(schoolGrade is > 0 ? $" Klasse {schoolGrade}" : "")</h1>
                     <p>für</p>
                     <h2>@st.FirstName @st.LastName</h2>
@@ -224,6 +230,8 @@ else
     [Parameter] public string SchoolAddressLine1 { get; set; } = string.Empty;
     [Parameter] public string SchoolAddressLine2 { get; set; } = string.Empty;
     [Parameter] public string SchoolPhone { get; set; } = string.Empty;
+    [Parameter] public string SchoolLeftLogoDataUrl { get; set; } = string.Empty;
+    [Parameter] public string SchoolRightLogoDataUrl { get; set; } = string.Empty;
     /// <summary>Wird nach jeder Änderung aufgerufen (Speicherstatus, Entwurf).</summary>
     [Parameter] public EventCallback OnChanged { get; set; }
 

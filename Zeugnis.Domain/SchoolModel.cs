@@ -17,6 +17,8 @@ public sealed class SchoolInfo
     public string AddressLine2 { get; set; } = "";
     public string Phone { get; set; } = "";
     public string Town { get; set; } = "";
+    public string LeftLogoDataUrl { get; set; } = "";
+    public string RightLogoDataUrl { get; set; } = "";
 }
 
 public enum Gender { Unknown, Male, Female, Diverse }
