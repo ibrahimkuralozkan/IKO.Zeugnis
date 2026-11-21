@@ -24,6 +24,8 @@ public class AssignmentWorkflowTests
     public void Create_StoresPasswordAndBaseline_AndBuildReproducesFile()
     {
         var school = TestData.School();
+        school.Students[0].DateOfBirth = new DateOnly(2017, 4, 3);
+        school.Students[0].Gender = Gender.Female;
         school.School.AddressLine1 = "Teststraße 12";
         school.School.AddressLine2 = "45123 Teststadt";
         school.School.Phone = "0201 123456";
@@ -44,6 +46,9 @@ public class AssignmentWorkflowTests
         Assert.Equal("0201 123456", rebuilt.SchoolPhone);
         Assert.Equal(school.School.LeftLogoDataUrl, rebuilt.SchoolLeftLogoDataUrl);
         Assert.Equal(school.School.RightLogoDataUrl, rebuilt.SchoolRightLogoDataUrl);
+        Assert.False(rebuilt.IsReview);
+        Assert.Null(rebuilt.Students.Single(s => s.Id == anna).DateOfBirth);
+        Assert.Equal(Gender.Unknown, rebuilt.Students.Single(s => s.Id == anna).Gender);
         Assert.Equal(file.Students.Select(s => s.Id), rebuilt.Students.Select(s => s.Id));
         Assert.Equal("3", rebuilt.Reports.Single(r => r.StudentId == anna).Get("g:Sport"));
     }

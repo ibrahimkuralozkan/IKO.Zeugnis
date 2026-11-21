@@ -122,8 +122,9 @@ public static class AssignmentFactory
         if (cls.ClassTeacherId is not { } teacherId)
             throw new MasterDataException($"Für Klasse {cls.Name} ist keine Klassenlehrkraft festgelegt (unter „Klassen“).");
         var file = Create(school, new AssignmentRequest(teacherId, [cls.Name], ReviewLabel, AllFields, expiresUtc), now);
-        school.Assignments.Single(a => a.AssignmentId == file.AssignmentId).IsReview = true;
-        return file;
+        var issued = school.Assignments.Single(a => a.AssignmentId == file.AssignmentId);
+        issued.IsReview = true;
+        return Build(school, issued);
     }
 
     /// <summary>
@@ -133,7 +134,16 @@ public static class AssignmentFactory
     public static AssignmentFile Build(SchoolFile school, IssuedAssignment issued)
     {
         var ids = issued.StudentIds.ToHashSet();
-        var students = school.Students.Where(s => ids.Contains(s.Id)).ToList();
+        var students = school.Students.Where(s => ids.Contains(s.Id)).Select(s => new Student
+        {
+            Id = s.Id,
+            FirstName = s.FirstName,
+            LastName = s.LastName,
+            DateOfBirth = issued.IsReview ? s.DateOfBirth : null,
+            Gender = issued.IsReview ? s.Gender : Gender.Unknown,
+            ClassName = s.ClassName,
+            Track = s.Track,
+        }).ToList();
         var classNames = issued.Classes().ToList();
         var grades = school.Classes.Where(c => classNames.Contains(c.Name)).ToDictionary(c => c.Name, c => c.Grade);
         return new AssignmentFile
@@ -153,6 +163,7 @@ public static class AssignmentFactory
             ClassNames = classNames,
             ClassGrades = grades,
             Label = issued.Label,
+            IsReview = issued.IsReview,
             IssuedUtc = issued.IssuedUtc,
             ExpiresUtc = issued.ExpiresUtc,
             AllowedFields = [.. issued.AllowedFields],

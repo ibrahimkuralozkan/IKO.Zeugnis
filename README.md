@@ -77,6 +77,7 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 - [x] **0.26:** Okul dosyasına sol/sağ logo yükleme; logolar şifreli Schuldatei ve Auftrag içinde taşınır ve karne başlığında PDF düzenine uygun gösterilir
 - [x] **0.26.1:** Tekrarlanan üst öğrenci bilgi kartı kaldırıldı; Ankreuzbewertung bölüm/öğrenci adı tablonun sol üst hücresine alındı ve ölçek sütunu çizgileri tam yüksekliğe uzatıldı
 - [x] **0.26.2:** İlk ölçek sütununun sol çizgisi kesintisiz yapıldı; sayaçlarda gri/turuncu/yeşil ve öğrenci listesinde eksik turuncu/tamam yeşil/seçili mavi durum panelleri eklendi
+- [x] **0.27:** Branş görevlerinde öğrenci doğum tarihi/cinsiyeti dosyaya alınmaz ve başlık sade kalır; sınıf öğretmeni kontrol görevinde doğum/devamsızlık ayrıntıları gösterilir; öğretmen sınıf-geneli ilerleme satırı kaldırıldı
 - [ ] Sonra: iPad gerçek cihaz testi, Word tag yardım ekranı, yeni yarıyıl için okul dosyası devri
 
 ## Kurallar

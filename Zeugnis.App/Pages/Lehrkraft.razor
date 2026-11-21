@@ -25,7 +25,6 @@
 }
 else
 {
-    var total = ctx.TotalProgress();
     <div class="admin-head">
         <div>
             <h1>@a.Label · @(a.ClassNames.Count > 1 ? "Klassen" : "Klasse") @a.ClassName</h1>
@@ -40,7 +39,6 @@ else
     </div>
 
     <div class="status-line">
-        <span>@total.Filled von @total.Total Feldern ausgefüllt</span>
         <span class="draft-state @Session.Draft.ToString().ToLowerInvariant()">@DraftText()</span>
     </div>
 
@@ -67,6 +65,7 @@ else
     <GradingView Context="ctx" SchoolName="@a.SchoolName" SchoolAddressLine1="@a.SchoolAddressLine1"
                  SchoolAddressLine2="@a.SchoolAddressLine2" SchoolPhone="@a.SchoolPhone"
                  SchoolLeftLogoDataUrl="@a.SchoolLeftLogoDataUrl" SchoolRightLogoDataUrl="@a.SchoolRightLogoDataUrl"
+                 ShowPersonalDetails="@a.IsReview"
                  OnChanged="Session.MarkChanged" />
 
     <details class="card">

@@ -110,6 +110,7 @@ public sealed class AssignmentFile
     /// <summary>Jahrgangsstufe je Klasse, damit jeder Schüler den richtigen Katalog erhält.</summary>
     public Dictionary<string, int> ClassGrades { get; set; } = [];
     public string Label { get; set; } = "";
+    public bool IsReview { get; set; }
     public DateTimeOffset IssuedUtc { get; set; }
     public DateTimeOffset ExpiresUtc { get; set; }
     public List<string> AllowedFields { get; set; } = [];

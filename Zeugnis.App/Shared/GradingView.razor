@@ -93,10 +93,27 @@ else
                     <h1>Zeugnis@(schoolGrade is > 0 ? $" Klasse {schoolGrade}" : "")</h1>
                     <p>für</p>
                     <h2>@st.FirstName @st.LastName</h2>
-                    <div class="report-meta">
-                        <span><strong>Klasse</strong> @st.ClassName</span>
-                        <span><strong>Zeitraum</strong> @Context.Term</span>
-                    </div>
+                    @if (ShowPersonalDetails)
+                    {
+                        <div class="report-meta report-meta-personal">
+                            <span><strong>geboren am</strong> @Labels.Date(st.DateOfBirth)</span>
+                            <span><strong>Klasse</strong> @st.ClassName</span>
+                            <span><strong>Schuljahr</strong> @Context.Term.SchoolYear</span>
+                            <span><strong>@Context.Term.HalfYear. Halbjahr</strong></span>
+                        </div>
+                        <div class="report-absence">
+                            <span>Fehlstunden insgesamt: @DisplayNumber(st, ReportText.AbsenceKey), davon unentschuldigt: @DisplayNumber(st, ReportText.UnexcusedKey)</span>
+                            <span>Anzahl der Verspätungen: @DisplayNumber(st, ReportText.LateKey)</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="report-meta">
+                            <span><strong>Klasse</strong> @st.ClassName</span>
+                            <span><strong>Schuljahr</strong> @Context.Term.SchoolYear</span>
+                            <span><strong>@Context.Term.HalfYear. Halbjahr</strong></span>
+                        </div>
+                    }
                 </header>
 
                 @if (Context.CatalogFor(st) is null)
@@ -223,6 +240,7 @@ else
     [Parameter] public string SchoolPhone { get; set; } = string.Empty;
     [Parameter] public string SchoolLeftLogoDataUrl { get; set; } = string.Empty;
     [Parameter] public string SchoolRightLogoDataUrl { get; set; } = string.Empty;
+    [Parameter] public bool ShowPersonalDetails { get; set; }
     /// <summary>Wird nach jeder Änderung aufgerufen (Speicherstatus, Entwurf).</summary>
     [Parameter] public EventCallback OnChanged { get; set; }
 
@@ -253,6 +271,12 @@ else
         "1" => "sehr gut", "2" => "gut", "3" => "befriedigend", "4" => "ausreichend", "5" => "mangelhaft", "6" => "ungenügend",
         _ => "",
     };
+
+    private string DisplayNumber(Student student, string key)
+    {
+        var value = Context.Get(student, key);
+        return value.Length == 0 ? "–" : value;
+    }
 
     private async Task Select(Student s)
     {

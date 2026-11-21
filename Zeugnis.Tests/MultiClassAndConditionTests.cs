@@ -82,6 +82,7 @@ public class MultiClassAndConditionTests
     public void Kontrolle_der_Klassenlehrkraft_zeigt_Urheber_und_markiert_Korrekturen()
     {
         var f = TestData.School();                                   // Klassenlehrkraft 3a: Frau Beispiel
+        f.Students[0].DateOfBirth = new DateOnly(2017, 4, 3);
         var sport = TestData.SportAssignment(f);                     // Herr Muster: r:Sport.*, g:Sport
         MergeEngine.Commit(f, Return(f, sport, (c, anna) => c.Set(anna, "g:Sport", "2", Now)), new Dictionary<(Guid, string), ConflictChoice>(), Now);
 
@@ -89,6 +90,8 @@ public class MultiClassAndConditionTests
         Assert.True(f.Assignments.Single(a => a.AssignmentId == review.AssignmentId).IsReview);
         Assert.Equal("Frau Beispiel", review.TeacherName);
         Assert.Equal(f.Students.Count, review.Students.Count);
+        Assert.True(review.IsReview);
+        Assert.Equal(new DateOnly(2017, 4, 3), review.Students[0].DateOfBirth);
 
         var ctx = GradingContext.ForAssignment(review);
         var anna = ctx.Students.Single(s => s.FirstName == "Anna");
