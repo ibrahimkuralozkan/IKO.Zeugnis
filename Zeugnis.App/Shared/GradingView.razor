@@ -108,14 +108,16 @@ else
 
                             case FieldKind.Grade:
                                 var grade = Context.Get(st, g.Keys[0]);
-                                <div class="chips" role="radiogroup" aria-label="Note @g.Section.Title">
+                                <div class="grade-options" role="radiogroup" aria-label="Note @g.Section.Title">
                                     @for (var n = 1; n <= 6; n++)
                                     {
                                         var v = n.ToString();
-                                        <button class="chip @(grade == v ? "on" : "")" role="radio" aria-checked="@(grade == v ? "true" : "false")"
-                                                @onclick="() => Toggle(st, g.Keys[0], v)">@v</button>
+                                        <div class="grade-option">
+                                            <span>@GradeWord(v)</span>
+                                            <button class="chip @(grade == v ? "on" : "")" role="radio" aria-checked="@(grade == v ? "true" : "false")"
+                                                    title="@($"{v} – {GradeWord(v)}")" @onclick="() => Toggle(st, g.Keys[0], v)">@v</button>
+                                        </div>
                                     }
-                                    <span class="muted grade-word">@GradeWord(grade)</span>
                                 </div>
                                 break;
 

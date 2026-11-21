@@ -362,6 +362,10 @@ ol.items textarea, ol.items input { flex: 1; min-height: 40px; padding: .45rem .
 .choice:hover:not(.on) { border-color: var(--primary); }
 
 .chips { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.grade-options { display: grid; grid-template-columns: repeat(6, minmax(64px, 1fr)); gap: .5rem; max-width: 620px; align-items: end; }
+.grade-option { display: grid; grid-template-rows: minmax(2.2rem, auto) auto; gap: .3rem; text-align: center; }
+.grade-option > span { display: grid; place-items: end center; color: var(--muted); font-size: .78rem; line-height: 1.15; hyphens: auto; }
+.grade-option .chip { width: 100%; }
 .chip {
     font: inherit; font-weight: 700; min-width: 52px; min-height: 52px; border-radius: 12px; cursor: pointer;
     border: 1.5px solid var(--border); background: var(--bg); color: var(--text); padding: 0 .9rem;
@@ -369,7 +373,6 @@ ol.items textarea, ol.items input { flex: 1; min-height: 40px; padding: .45rem .
 .chip.wide { font-weight: 600; text-align: left; }
 .chip.on { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
 .chip:hover:not(.on) { border-color: var(--primary); }
-.grade-word { margin-left: .4rem; }
 .report-text { min-height: 7rem; resize: vertical; line-height: 1.5; }
 .number-input { width: 6rem; text-align: center; font-size: 1.1rem; }
 .date-grid input[type=date], .date-grid input[type=time] { min-width: 9.5rem; }
@@ -381,6 +384,7 @@ ol.items textarea, ol.items input { flex: 1; min-height: 40px; padding: .45rem .
     .student-list { position: static; max-height: 15rem; }
 }
 @media (max-width: 640px) {
+    .grade-options { grid-template-columns: repeat(3, minmax(64px, 1fr)); max-width: none; }
     .rating-head { display: none; }
     .rating-row { grid-template-columns: repeat(var(--steps), minmax(0, 1fr)); }
     .rating-row .criterion { grid-column: 1 / -1; padding: .2rem 0; }
