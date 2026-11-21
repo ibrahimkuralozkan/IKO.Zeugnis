@@ -73,19 +73,16 @@ else
         <div class="grading-main report-view">
             @if (Current is { } st)
             {
-                var index = IndexOf(st);
                 var p = Context.ProgressOf(st);
                 var sections = Context.SectionsFor(st);
                 <div class="student-head card">
-                    <button class="btn nav" @onclick="() => Step(-1)" disabled="@(index == 0)" aria-label="vorheriger Schüler">‹</button>
                     <div class="who">
                         <h2>@st.FirstName @st.LastName</h2>
                         <p class="muted">
-                            @st.ClassName · @Labels.Of(st.Track) · @(index + 1) von @NavigationStudents.Count ·
+                            @st.ClassName · @Labels.Of(st.Track) ·
                             <span class="@(p.IsComplete ? "ok-text" : "")">@p.Filled/@p.Total ausgefüllt</span>
                         </p>
                     </div>
-                    <button class="btn nav" @onclick="() => Step(1)" disabled="@(index == NavigationStudents.Count - 1)" aria-label="nächster Schüler">›</button>
                 </div>
 
                 <header class="report-preview-head">
@@ -97,7 +94,6 @@ else
                         <span><strong>Klasse</strong> @st.ClassName</span>
                         <span><strong>Zeitraum</strong> @Context.Term</span>
                     </div>
-                    <p class="muted small report-hint">Interaktive Arbeitsansicht · Die Word-Ausgabe verwendet die hinterlegte Schulvorlage.</p>
                 </header>
 
                 @if (Context.CatalogFor(st) is null)
@@ -201,10 +197,6 @@ else
                     </section>
                 }
 
-                <div class="step-footer">
-                    <button class="btn" @onclick="() => Step(-1)" disabled="@(index == 0)">‹ Vorheriger</button>
-                    <button class="btn primary" @onclick="() => Step(1)" disabled="@(index == NavigationStudents.Count - 1)">Nächster ›</button>
-                </div>
             }
             else if (_onlyOpen)
             {
@@ -239,8 +231,6 @@ else
         _onlyOpen ? Context.IncompleteStudents() : Context.Students;
 
     private IEnumerable<Student> VisibleStudents => NavigationStudents;
-
-    private int IndexOf(Student s) => NavigationStudents.ToList().IndexOf(s);
 
     private static int Percent(Progress p) => p.Total == 0 ? 0 : (int)Math.Round(100.0 * p.Filled / p.Total);
 
@@ -278,17 +268,6 @@ else
         _fieldList = null;
         var students = NavigationStudents;
         if (students.All(s => s.Id != _currentId)) _currentId = students.FirstOrDefault()?.Id;
-    }
-
-    private void Step(int delta)
-    {
-        if (Current is not { } s) return;
-        var list = NavigationStudents;
-        if (list.Count == 0) return;
-        var i = Math.Clamp(IndexOf(s) + delta, 0, list.Count - 1);
-        _currentId = list[i].Id;
-        _fieldList = null;
-        _ = JS.InvokeVoidAsync("zeugnis.scrollToMain");
     }
 
     private async Task Toggle(Student s, string key, string value)

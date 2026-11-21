@@ -326,7 +326,6 @@ ol.items textarea, ol.items input { flex: 1; min-height: 40px; padding: .45rem .
 .student-head .who { flex: 1; min-width: 0; text-align: center; }
 .student-head h2 { margin: 0; }
 .student-head .muted { margin: .2rem 0 0; font-size: .9rem; }
-.btn.nav { font-size: 1.6rem; line-height: 1; min-width: 52px; }
 
 .audit-filters { display: grid; grid-template-columns: repeat(4, minmax(140px, 1fr)); gap: .75rem; }
 .audit-search { grid-column: span 2; }
@@ -395,7 +394,6 @@ button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active {
 .report-text { min-height: 7rem; resize: vertical; line-height: 1.5; }
 .number-input { width: 6rem; text-align: center; font-size: 1.1rem; }
 .date-grid input[type=date], .date-grid input[type=time] { min-width: 9.5rem; }
-.step-footer { display: flex; justify-content: space-between; gap: .75rem; margin: .5rem 0 1rem; }
 @keyframes field-jump-pulse { 0%, 100% { box-shadow: var(--shadow); } 35% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--primary) 35%, transparent), var(--shadow); } }
 .field-jump-highlight { animation: field-jump-pulse 1.8s ease; scroll-margin-block: 7rem; }
 
@@ -415,7 +413,6 @@ button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active {
 .report-preview-head h1 { margin: 2rem 0 .25rem; font-size: 2rem; }
 .report-preview-head h2 { margin: .45rem 0 1.75rem; font-size: 1.45rem; }
 .report-meta { display: flex; justify-content: space-between; gap: 1rem; padding-top: .75rem; border-top: 1px solid #182033; text-align: left; }
-.report-hint { margin-top: 1rem !important; }
 .report-view .grade-section { margin: 0; padding-block: 1.25rem; border-width: 0 0 1px; border-radius: 0; }
 .report-view .grade-section.incomplete-element, .report-view .rating-row.empty { background: var(--warn-bg); }
 .report-view .choice, .report-view .chip, .report-view input, .report-view textarea { color: #182033; background: #f8f9fc; }
