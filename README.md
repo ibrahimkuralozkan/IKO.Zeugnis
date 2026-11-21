@@ -69,6 +69,7 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 - [x] **0.21.1:** `Offen` ve `Bewertet` sayaçlarının Razor olay bağlayıcıları iç içe tırnaksız ayrı metotlara taşındı; Visual Studio ve doğrudan App derlemesi uyumlu
 - [x] **0.22:** `Zu bewerten`, `Offen` ve `Bewertet` göstergeleri değerlendirme kâğıdının sağındaki yapışkan panele taşındı; dar ekranlarda yatay üst panele dönüşür ve kaydırırken görünür kalır
 - [x] **0.22.1:** Otomatik taslak geri yüklendiğinde gösterilen büyük bilgi kutusu ve gereksiz `OK` adımı kaldırıldı
+- [x] **0.23:** Zeugnisansicht içindeki Ankreuzbewertung gerçek karne tablosuna yaklaştırıldı: geniş ve okunaklı kriter alanı, dar ölçek sütunları, dikey başlıklar, küçük dairesel seçimler ve dar ekranda bozulmayan yatay kaydırma
 - [ ] Sonra: iPad gerçek cihaz testi, Word tag yardım ekranı, yeni yarıyıl için okul dosyası devri
 
 ## Kurallar

@@ -422,6 +422,32 @@ button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active {
 .report-view .choice, .report-view .chip, .report-view input, .report-view textarea { color: #182033; background: #f8f9fc; }
 .report-view .choice.on, .report-view .chip.on { color: var(--primary-text); background: var(--primary); }
 .report-view .muted, .report-view .grade-option > span, .report-view .rating-head span { color: #5e6879; }
+.report-view .rating-table { gap: 0; overflow-x: auto; border: 1px solid #9aa1ac; }
+.report-view .rating-head, .report-view .rating-row {
+    grid-template-columns: minmax(300px, 1fr) repeat(var(--steps), 58px); gap: 0; min-width: 620px;
+}
+.report-view .rating-head { display: grid; border-bottom: 1px solid #9aa1ac; }
+.report-view .rating-head span:first-child { min-height: 7.5rem; }
+.report-view .rating-head span:not(:first-child) {
+    display: grid; place-items: center; min-height: 7.5rem; padding: .45rem .2rem; border-left: 1px solid #9aa1ac;
+    writing-mode: vertical-rl; transform: rotate(180deg); font-size: .78rem; line-height: 1.1;
+}
+.report-view .rating-row { padding: 0; border-top: 1px solid #aeb4be; }
+.report-view .rating-row:nth-child(odd):not(.empty) { background: #f1f2f4; }
+.report-view .rating-row.empty { padding: 0; border-radius: 0; border-top-color: #d9ae64; }
+.report-view .rating-row .criterion { grid-column: auto; align-self: stretch; display: flex; align-items: center; padding: .55rem .75rem; font-size: .98rem; line-height: 1.35; }
+.report-view .choice {
+    min-height: 44px; padding: 0; border: 0; border-left: 1px solid #aeb4be; border-radius: 0;
+    background: transparent; color: #182033;
+}
+.report-view .choice:hover:not(.on) { background: #e9f2ff; }
+.report-view .choice.on { border-color: #aeb4be; background: transparent; color: #182033; }
+.report-view .choice .mark {
+    width: 21px; height: 21px; border: 1.5px solid #707783; border-radius: 50%; background: #fff;
+    font-size: 0; line-height: 0;
+}
+.report-view .choice.on .mark { border: 6px solid #1688ff; }
+.report-view .choice .lbl { display: none; }
 
 /* iPad hochkant / schmale Fenster: Schülerliste oben, Skala unter dem Kriterium */
 @media (max-width: 1200px) {
