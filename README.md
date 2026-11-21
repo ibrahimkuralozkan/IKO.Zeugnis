@@ -71,6 +71,7 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 - [x] **0.22.1:** Otomatik taslak geri yüklendiğinde gösterilen büyük bilgi kutusu ve gereksiz `OK` adımı kaldırıldı
 - [x] **0.23:** Zeugnisansicht içindeki Ankreuzbewertung gerçek karne tablosuna yaklaştırıldı: geniş ve okunaklı kriter alanı, dar ölçek sütunları, dikey başlıklar, küçük dairesel seçimler ve dar ekranda bozulmayan yatay kaydırma
 - [x] **0.23.1:** Değerlendirme sayfası mevcut ekran genişliğini kullanacak şekilde 1680 px'e kadar genişletildi; öğrenci/ilerleme yan panelleri inceltildi ve karne alanındaki 980 px sınırı kaldırıldı
+- [x] **0.24:** `Formularansicht` ve görünüm değiştirme düğmeleri kaldırıldı; Lehrkraft ve Verwaltung değerlendirmeleri doğrudan tek `Zeugnisansicht` içinde açılır
 - [ ] Sonra: iPad gerçek cihaz testi, Word tag yardım ekranı, yeni yarıyıl için okul dosyası devri
 
 ## Kurallar
