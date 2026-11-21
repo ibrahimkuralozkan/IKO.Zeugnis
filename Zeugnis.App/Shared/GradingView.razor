@@ -65,11 +65,11 @@ else
                     <div class="evaluation-metrics" aria-label="Bewertungsfortschritt">
                         <div class="evaluation-metric total"><span>Zu bewerten</span><strong>@p.Total</strong></div>
                         <button class="evaluation-metric open @(_fieldList == "open" ? "active" : "")" type="button"
-                                disabled="@(p.Total - p.Filled == 0)" @onclick="() => ToggleFieldList("open")">
+                                disabled="@(p.Total - p.Filled == 0)" @onclick="ToggleOpenFieldList">
                             <span>Offen</span><strong>@(p.Total - p.Filled)</strong><span aria-hidden="true">▾</span>
                         </button>
                         <button class="evaluation-metric done @(_fieldList == "done" ? "active" : "")" type="button"
-                                disabled="@(p.Filled == 0)" @onclick="() => ToggleFieldList("done")">
+                                disabled="@(p.Filled == 0)" @onclick="ToggleDoneFieldList">
                             <span>Bewertet</span><strong>@p.Filled</strong><span aria-hidden="true">▾</span>
                         </button>
                     </div>
@@ -264,6 +264,10 @@ else
     }
 
     private void ToggleFieldList(string kind) => _fieldList = _fieldList == kind ? null : kind;
+
+    private void ToggleOpenFieldList() => ToggleFieldList("open");
+
+    private void ToggleDoneFieldList() => ToggleFieldList("done");
 
     private async Task JumpToField(Student student, string key)
     {

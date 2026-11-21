@@ -66,6 +66,7 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 - [x] **0.19.1:** Not alanlarında `sehr gut`–`ungenügend` açıklamaları ilgili 1–6 düğmelerinin üzerinde sabit gösterilir; seçili değer yalnız mavi vurguyla belirtilir
 - [x] **0.20:** Seçili öğrenci için toplam/açık/değerlendirilmiş alan sayaçları ve tıklanabilir alan listeleri; listeden ilgili elemente veya Ankreuz satırına doğrudan kaydırma
 - [x] **0.21:** Lehrkraft ve Verwaltung değerlendirmesinde isteğe bağlı `Zeugnisansicht`; okul, öğrenci, sınıf ve dönem başlıklı tek parça karne kâğıdı görünümü, mevcut giriş kontrolleri ve eksik alan vurgularıyla birlikte
+- [x] **0.21.1:** `Offen` ve `Bewertet` sayaçlarının Razor olay bağlayıcıları iç içe tırnaksız ayrı metotlara taşındı; Visual Studio ve doğrudan App derlemesi uyumlu
 - [ ] Sonra: iPad gerçek cihaz testi, Word tag yardım ekranı, yeni yarıyıl için okul dosyası devri
 
 ## Kurallar
