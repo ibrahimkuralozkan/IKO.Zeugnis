@@ -75,6 +75,7 @@ else
             {
                 var sections = Context.SectionsFor(st);
                 var schoolGrade = Context.CatalogFor(st)?.Grade;
+                var term = Context.Term;
                 <header class="report-preview-head">
                     <div class="report-branding">
                         <div class="report-logo-slot">@if (!string.IsNullOrWhiteSpace(SchoolLeftLogoDataUrl)) {<img src="@SchoolLeftLogoDataUrl" alt="Linkes Schullogo" />}</div>
@@ -98,8 +99,8 @@ else
                         <div class="report-meta report-meta-personal">
                             <span><strong>geboren am</strong> @Labels.Date(st.DateOfBirth)</span>
                             <span><strong>Klasse</strong> @st.ClassName</span>
-                            <span><strong>Schuljahr</strong> @Context.Term.SchoolYear</span>
-                            <span><strong>@Context.Term.HalfYear. Halbjahr</strong></span>
+                            <span><strong>Schuljahr</strong> @(term?.SchoolYear ?? "")</span>
+                            <span><strong>@(term is null ? "" : $"{term.HalfYear}. Halbjahr")</strong></span>
                         </div>
                         <div class="report-absence">
                             <span>Fehlstunden insgesamt: @DisplayNumber(st, ReportText.AbsenceKey), davon unentschuldigt: @DisplayNumber(st, ReportText.UnexcusedKey)</span>
@@ -110,8 +111,8 @@ else
                     {
                         <div class="report-meta">
                             <span><strong>Klasse</strong> @st.ClassName</span>
-                            <span><strong>Schuljahr</strong> @Context.Term.SchoolYear</span>
-                            <span><strong>@Context.Term.HalfYear. Halbjahr</strong></span>
+                            <span><strong>Schuljahr</strong> @(term?.SchoolYear ?? "")</span>
+                            <span><strong>@(term is null ? "" : $"{term.HalfYear}. Halbjahr")</strong></span>
                         </div>
                     }
                 </header>

@@ -78,6 +78,7 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 - [x] **0.26.1:** Tekrarlanan üst öğrenci bilgi kartı kaldırıldı; Ankreuzbewertung bölüm/öğrenci adı tablonun sol üst hücresine alındı ve ölçek sütunu çizgileri tam yüksekliğe uzatıldı
 - [x] **0.26.2:** İlk ölçek sütununun sol çizgisi kesintisiz yapıldı; sayaçlarda gri/turuncu/yeşil ve öğrenci listesinde eksik turuncu/tamam yeşil/seçili mavi durum panelleri eklendi
 - [x] **0.27:** Branş görevlerinde öğrenci doğum tarihi/cinsiyeti dosyaya alınmaz ve başlık sade kalır; sınıf öğretmeni kontrol görevinde doğum/devamsızlık ayrıntıları gösterilir; öğretmen sınıf-geneli ilerleme satırı kaldırıldı
+- [x] **0.28:** iPad yatay/dikey düzeni: uygulama menüsü üstte yatay, öğrenci/sayaç/karne tam genişlikte alt alta; öğrenci kartları yatay grid ve 620 px tablo iPad'de kaydırmasız
 - [ ] Sonra: iPad gerçek cihaz testi, Word tag yardım ekranı, yeni yarıyıl için okul dosyası devri
 
 ## Kurallar
