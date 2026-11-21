@@ -36,13 +36,19 @@ else
             </ul>
         </aside>
 
-        <div class="grading-main">
+        <div class="grading-main @(_reportView ? "report-view" : "form-view")">
             @if (Current is { } st)
             {
                 var index = IndexOf(st);
                 var p = Context.ProgressOf(st);
                 var sections = Context.SectionsFor(st);
                 var fieldStatuses = Context.FieldStatusesFor(st);
+                <div class="view-switch" role="group" aria-label="Ansicht wählen">
+                    <button type="button" class="btn @(!_reportView ? "primary" : "")" aria-pressed="@(!_reportView)"
+                            @onclick="() => _reportView = false">Formularansicht</button>
+                    <button type="button" class="btn @(_reportView ? "primary" : "")" aria-pressed="@_reportView"
+                            @onclick="() => _reportView = true">Zeugnisansicht</button>
+                </div>
                 <div class="student-head card">
                     <button class="btn nav" @onclick="() => Step(-1)" disabled="@(index == 0)" aria-label="vorheriger Schüler">‹</button>
                     <div class="who">
@@ -83,6 +89,21 @@ else
                         </div>
                     }
                 </div>
+
+                @if (_reportView)
+                {
+                    <header class="report-preview-head">
+                        <p class="report-school">@(string.IsNullOrWhiteSpace(SchoolName) ? "Schule" : SchoolName)</p>
+                        <h1>Zeugnis</h1>
+                        <p>für</p>
+                        <h2>@st.FirstName @st.LastName</h2>
+                        <div class="report-meta">
+                            <span><strong>Klasse</strong> @st.ClassName</span>
+                            <span><strong>Zeitraum</strong> @Context.Term</span>
+                        </div>
+                        <p class="muted small report-hint">Interaktive Arbeitsansicht · Die Word-Ausgabe verwendet die hinterlegte Schulvorlage.</p>
+                    </header>
+                }
 
                 @if (Context.CatalogFor(st) is null)
                 {
@@ -200,11 +221,13 @@ else
 
 @code {
     [Parameter, EditorRequired] public GradingContext Context { get; set; } = default!;
+    [Parameter] public string SchoolName { get; set; } = string.Empty;
     /// <summary>Wird nach jeder Änderung aufgerufen (Speicherstatus, Entwurf).</summary>
     [Parameter] public EventCallback OnChanged { get; set; }
 
     private Guid? _currentId;
     private bool _onlyOpen;
+    private bool _reportView;
     private string? _fieldList;
 
     private Student? Current

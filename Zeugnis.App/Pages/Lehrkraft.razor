@@ -73,7 +73,7 @@ else
         <p class="alert error" role="alert">@_error</p>
     }
 
-    <GradingView Context="ctx" OnChanged="Session.MarkChanged" />
+    <GradingView Context="ctx" SchoolName="@a.SchoolName" OnChanged="Session.MarkChanged" />
 
     <details class="card">
         <summary>Meine Änderungen (@a.TeacherAudit.Count)</summary>

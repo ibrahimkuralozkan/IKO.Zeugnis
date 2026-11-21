@@ -321,6 +321,7 @@ ol.items textarea, ol.items input { flex: 1; min-height: 40px; padding: .45rem .
 .progress-bar span { display: block; height: 100%; background: var(--primary); transition: width .2s; }
 
 .student-head { display: flex; align-items: center; gap: .75rem; padding: .9rem; }
+.view-switch { display: flex; justify-content: flex-end; gap: .5rem; margin: 0 0 .75rem; }
 .student-head .who { flex: 1; min-width: 0; text-align: center; }
 .student-head h2 { margin: 0; }
 .student-head .muted { margin: .2rem 0 0; font-size: .9rem; }
@@ -396,12 +397,42 @@ button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active {
 @keyframes field-jump-pulse { 0%, 100% { box-shadow: var(--shadow); } 35% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--primary) 35%, transparent), var(--shadow); } }
 .field-jump-highlight { animation: field-jump-pulse 1.8s ease; scroll-margin-block: 7rem; }
 
+/* Karne görünümü: aynı kontroller, tek parça kâğıt hissi. */
+.grading-main.report-view {
+    max-width: 980px; padding: 1.35rem 2.2rem 2rem; border: 1px solid #d7dbe3; border-radius: 3px;
+    background: #fff; color: #182033; box-shadow: 0 12px 32px rgb(24 32 51 / 14%);
+}
+.report-view .view-switch { margin: -.35rem -1rem 1rem; }
+.report-view .student-head, .report-view .evaluation-summary, .report-view .grade-section {
+    border-color: #cfd4dd; background: #fff; color: #182033; box-shadow: none;
+}
+.report-view .student-head { border-width: 0 0 1px; border-radius: 0; }
+.report-view .evaluation-summary { border-width: 0 0 1px; border-radius: 0; }
+.report-preview-head { padding: 2.3rem 1rem 1.5rem; text-align: center; border-bottom: 2px solid #182033; }
+.report-preview-head p { margin: .25rem 0; }
+.report-preview-head .report-school { font-size: 1.45rem; font-weight: 800; }
+.report-preview-head h1 { margin: 2rem 0 .25rem; font-size: 2rem; }
+.report-preview-head h2 { margin: .45rem 0 1.75rem; font-size: 1.45rem; }
+.report-meta { display: flex; justify-content: space-between; gap: 1rem; padding-top: .75rem; border-top: 1px solid #182033; text-align: left; }
+.report-hint { margin-top: 1rem !important; }
+.report-view .grade-section { margin: 0; padding-block: 1.25rem; border-width: 0 0 1px; border-radius: 0; }
+.report-view .grade-section.incomplete-element, .report-view .rating-row.empty { background: var(--warn-bg); }
+.report-view .choice, .report-view .chip, .report-view input, .report-view textarea { color: #182033; background: #f8f9fc; }
+.report-view .choice.on, .report-view .chip.on { color: var(--primary-text); background: var(--primary); }
+.report-view .muted, .report-view .grade-option > span, .report-view .rating-head span { color: #5e6879; }
+
 /* iPad hochkant / schmale Fenster: Schülerliste oben, Skala unter dem Kriterium */
 @media (max-width: 900px) {
     .grading { grid-template-columns: 1fr; }
     .student-list { position: static; max-height: 15rem; }
 }
 @media (max-width: 640px) {
+    .view-switch { justify-content: stretch; }
+    .view-switch .btn { flex: 1; padding-inline: .45rem; }
+    .grading-main.report-view { padding: .75rem; }
+    .report-view .view-switch { margin: 0 0 .75rem; }
+    .report-preview-head { padding: 1.3rem .25rem 1rem; }
+    .report-meta { flex-direction: column; gap: .35rem; }
     .evaluation-metrics { justify-content: stretch; }
     .evaluation-metric { flex: 1 1 30%; justify-content: center; padding-inline: .4rem; }
     .evaluation-popover { position: fixed; inset: auto .75rem .75rem; width: auto; max-height: 70vh; }

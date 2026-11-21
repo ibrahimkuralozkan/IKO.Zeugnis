@@ -32,7 +32,7 @@
 
             @if (_context is { } ctx)
             {
-                <GradingView @key="_class" Context="ctx" OnChanged="Session.MarkDirty" />
+                <GradingView @key="_class" Context="ctx" SchoolName="@f.School.Name" OnChanged="Session.MarkDirty" />
 
                 <div class="card">
                     <h3>Einzelne Zeugnisse (Word)</h3>
