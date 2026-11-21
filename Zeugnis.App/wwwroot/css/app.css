@@ -307,17 +307,20 @@ ol.items textarea, ol.items input { flex: 1; min-height: 40px; padding: .45rem .
 .student-list { grid-area: students; position: sticky; top: .75rem; padding: .9rem; max-height: calc(100vh - 1.5rem); overflow-y: auto; margin: 0; }
 .grading-main { grid-area: main; min-width: 0; }
 .student-list .list-head { display: flex; justify-content: space-between; align-items: baseline; }
-.student-list ul { list-style: none; padding: 0; margin: .5rem 0 0; display: flex; flex-direction: column; gap: 2px; }
+.student-list ul { list-style: none; padding: 0; margin: .5rem 0 0; display: flex; flex-direction: column; gap: .4rem; }
 .student {
     width: 100%; display: flex; justify-content: space-between; gap: .5rem; align-items: center; text-align: left;
     font: inherit; font-size: .95rem; padding: .55rem .6rem; min-height: 44px; border-radius: 9px;
     border: 1px solid transparent; background: none; color: var(--text); cursor: pointer;
 }
-.student:hover { background: var(--bg); }
-.student.active { background: var(--info-bg); border-color: var(--primary); color: var(--info-fg); font-weight: 600; }
+.student:not(.done) { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn-fg) 28%, var(--border)); color: var(--warn-fg); }
+.student.done { background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok-fg) 28%, var(--border)); color: var(--ok-fg); }
+.student:hover:not(.active) { border-color: var(--primary); }
+.student.active, .student.active.done { background: var(--info-bg); border-color: var(--primary); color: var(--info-fg); font-weight: 600; }
 .student .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .student .count { font-size: .8rem; color: var(--muted); flex: none; }
 .student.done .count { color: var(--ok-fg); font-weight: 700; }
+.student.active .count, .student.active.done .count { color: var(--info-fg); }
 .small-check { font-size: .88rem; margin-top: .6rem; }
 .progress-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin: .4rem 0; }
 .progress-bar span { display: block; height: 100%; background: var(--primary); transition: width .2s; }
@@ -345,6 +348,9 @@ ol.items textarea, ol.items input { flex: 1; min-height: 40px; padding: .45rem .
 .evaluation-metric { display: inline-flex; align-items: center; gap: .38rem; min-height: 42px; padding: .5rem .75rem; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--muted); font: inherit; text-transform: uppercase; font-size: .78rem; }
 .evaluation-metric { justify-content: space-between; width: 100%; }
 .evaluation-metric strong { color: var(--text); font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.evaluation-metric.total { background: color-mix(in srgb, var(--muted) 12%, var(--surface)); color: var(--text); }
+.evaluation-metric.open { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn-fg) 28%, var(--border)); color: var(--warn-fg); }
+.evaluation-metric.done { background: var(--ok-bg); border-color: color-mix(in srgb, var(--ok-fg) 28%, var(--border)); color: var(--ok-fg); }
 button.evaluation-metric { cursor: pointer; }
 button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active { border-color: var(--primary); }
 .evaluation-metric.open strong { color: var(--warn-fg); }
@@ -426,7 +432,7 @@ button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active {
 .report-view .rating-head > span { align-self: stretch; height: 100%; }
 .report-view .rating-head .rating-title {
     display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: .2rem;
-    min-height: 7.5rem; padding: 1rem; text-align: left; color: #111827;
+    min-height: 7.5rem; padding: 1rem; border-right: 1px solid #9aa1ac; text-align: left; color: #111827;
 }
 .report-view .rating-head .rating-title strong { font-size: 1.35rem; line-height: 1.15; }
 .report-view .rating-head .rating-title b { font-size: 1.05rem; line-height: 1.2; }
@@ -434,6 +440,7 @@ button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active {
     display: grid; place-items: center; min-height: 7.5rem; height: 100%; padding: .45rem .2rem; border-left: 1px solid #9aa1ac;
     writing-mode: vertical-rl; transform: rotate(180deg); font-size: .78rem; line-height: 1.1;
 }
+.report-view .rating-head span:nth-child(2) { border-left: 0; }
 .report-view .rating-row { padding: 0; border-top: 1px solid #aeb4be; }
 .report-view .rating-row:nth-child(odd):not(.empty) { background: #f1f2f4; }
 .report-view .rating-row.empty { padding: 0; border-radius: 0; border-top-color: #d9ae64; }
