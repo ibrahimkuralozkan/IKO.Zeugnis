@@ -36,13 +36,46 @@ else
             </ul>
         </aside>
 
+        @if (Current is { } summaryStudent)
+        {
+            var summaryProgress = Context.ProgressOf(summaryStudent);
+            var summaryFields = Context.FieldStatusesFor(summaryStudent);
+            <aside class="evaluation-summary card" aria-label="Bewertungsfortschritt">
+                <div class="evaluation-metrics">
+                    <div class="evaluation-metric total"><span>Zu bewerten</span><strong>@summaryProgress.Total</strong></div>
+                    <button class="evaluation-metric open @(_fieldList == "open" ? "active" : "")" type="button"
+                            disabled="@(summaryProgress.Total - summaryProgress.Filled == 0)" @onclick="ToggleOpenFieldList">
+                        <span>Offen</span><strong>@(summaryProgress.Total - summaryProgress.Filled)</strong><span aria-hidden="true">▾</span>
+                    </button>
+                    <button class="evaluation-metric done @(_fieldList == "done" ? "active" : "")" type="button"
+                            disabled="@(summaryProgress.Filled == 0)" @onclick="ToggleDoneFieldList">
+                        <span>Bewertet</span><strong>@summaryProgress.Filled</strong><span aria-hidden="true">▾</span>
+                    </button>
+                </div>
+                @if (_fieldList is { } listKind)
+                {
+                    var showFilled = listKind == "done";
+                    var listed = summaryFields.Where(f => f.IsFilled == showFilled).ToList();
+                    <div class="evaluation-popover">
+                        <h3>@(showFilled ? $"Bereits bewertete Felder ({listed.Count})" : $"Noch offene Felder ({listed.Count})")</h3>
+                        <div class="evaluation-field-list">
+                            @foreach (var field in listed)
+                            {
+                                <button class="evaluation-field @(showFilled ? "done" : "open")" type="button"
+                                        @onclick="() => JumpToField(summaryStudent, field.Key)">@field.Label</button>
+                            }
+                        </div>
+                    </div>
+                }
+            </aside>
+        }
+
         <div class="grading-main @(_reportView ? "report-view" : "form-view")">
             @if (Current is { } st)
             {
                 var index = IndexOf(st);
                 var p = Context.ProgressOf(st);
                 var sections = Context.SectionsFor(st);
-                var fieldStatuses = Context.FieldStatusesFor(st);
                 <div class="view-switch" role="group" aria-label="Ansicht wählen">
                     <button type="button" class="btn @(!_reportView ? "primary" : "")" aria-pressed="@(!_reportView)"
                             @onclick="() => _reportView = false">Formularansicht</button>
@@ -59,35 +92,6 @@ else
                         </p>
                     </div>
                     <button class="btn nav" @onclick="() => Step(1)" disabled="@(index == NavigationStudents.Count - 1)" aria-label="nächster Schüler">›</button>
-                </div>
-
-                <div class="evaluation-summary card">
-                    <div class="evaluation-metrics" aria-label="Bewertungsfortschritt">
-                        <div class="evaluation-metric total"><span>Zu bewerten</span><strong>@p.Total</strong></div>
-                        <button class="evaluation-metric open @(_fieldList == "open" ? "active" : "")" type="button"
-                                disabled="@(p.Total - p.Filled == 0)" @onclick="ToggleOpenFieldList">
-                            <span>Offen</span><strong>@(p.Total - p.Filled)</strong><span aria-hidden="true">▾</span>
-                        </button>
-                        <button class="evaluation-metric done @(_fieldList == "done" ? "active" : "")" type="button"
-                                disabled="@(p.Filled == 0)" @onclick="ToggleDoneFieldList">
-                            <span>Bewertet</span><strong>@p.Filled</strong><span aria-hidden="true">▾</span>
-                        </button>
-                    </div>
-                    @if (_fieldList is { } listKind)
-                    {
-                        var showFilled = listKind == "done";
-                        var listed = fieldStatuses.Where(f => f.IsFilled == showFilled).ToList();
-                        <div class="evaluation-popover">
-                            <h3>@(showFilled ? $"Bereits bewertete Felder ({listed.Count})" : $"Noch offene Felder ({listed.Count})")</h3>
-                            <div class="evaluation-field-list">
-                                @foreach (var field in listed)
-                                {
-                                    <button class="evaluation-field @(showFilled ? "done" : "open")" type="button"
-                                            @onclick="() => JumpToField(st, field.Key)">@field.Label</button>
-                                }
-                            </div>
-                        </div>
-                    }
                 </div>
 
                 @if (_reportView)

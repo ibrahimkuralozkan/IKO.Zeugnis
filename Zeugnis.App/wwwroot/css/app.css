@@ -302,8 +302,9 @@ ol.items textarea, ol.items input { flex: 1; min-height: 40px; padding: .45rem .
 .plain-list { margin: 0; padding-left: 1.1rem; }
 .plain-list li { margin: .25rem 0; }
 
-.grading { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 1rem; align-items: start; }
-.student-list { position: sticky; top: .75rem; padding: .9rem; max-height: calc(100vh - 1.5rem); overflow-y: auto; margin: 0; }
+.grading { display: grid; grid-template-columns: 260px minmax(0, 1fr) 178px; grid-template-areas: "students main summary"; gap: 1rem; align-items: start; }
+.student-list { grid-area: students; position: sticky; top: .75rem; padding: .9rem; max-height: calc(100vh - 1.5rem); overflow-y: auto; margin: 0; }
+.grading-main { grid-area: main; min-width: 0; }
 .student-list .list-head { display: flex; justify-content: space-between; align-items: baseline; }
 .student-list ul { list-style: none; padding: 0; margin: .5rem 0 0; display: flex; flex-direction: column; gap: 2px; }
 .student {
@@ -344,9 +345,10 @@ ol.items textarea, ol.items input { flex: 1; min-height: 40px; padding: .45rem .
 }
 
 .grade-section h3 { margin: 0 0 .75rem; font-size: 1.08rem; }
-.evaluation-summary { position: relative; padding: .75rem 1rem; z-index: 5; }
-.evaluation-metrics { display: flex; justify-content: flex-end; gap: .55rem; flex-wrap: wrap; }
+.evaluation-summary { grid-area: summary; position: sticky; top: .75rem; padding: .75rem; z-index: 6; margin: 0; }
+.evaluation-metrics { display: flex; flex-direction: column; gap: .55rem; }
 .evaluation-metric { display: inline-flex; align-items: center; gap: .38rem; min-height: 42px; padding: .5rem .75rem; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--muted); font: inherit; text-transform: uppercase; font-size: .78rem; }
+.evaluation-metric { justify-content: space-between; width: 100%; }
 .evaluation-metric strong { color: var(--text); font-size: 1.1rem; font-variant-numeric: tabular-nums; }
 button.evaluation-metric { cursor: pointer; }
 button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active { border-color: var(--primary); }
@@ -403,7 +405,7 @@ button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active {
     background: #fff; color: #182033; box-shadow: 0 12px 32px rgb(24 32 51 / 14%);
 }
 .report-view .view-switch { margin: -.35rem -1rem 1rem; }
-.report-view .student-head, .report-view .evaluation-summary, .report-view .grade-section {
+.report-view .student-head, .report-view .grade-section {
     border-color: #cfd4dd; background: #fff; color: #182033; box-shadow: none;
 }
 .report-view .student-head { border-width: 0 0 1px; border-radius: 0; }
@@ -422,9 +424,15 @@ button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active {
 .report-view .muted, .report-view .grade-option > span, .report-view .rating-head span { color: #5e6879; }
 
 /* iPad hochkant / schmale Fenster: Schülerliste oben, Skala unter dem Kriterium */
+@media (max-width: 1200px) {
+    .grading { grid-template-columns: 260px minmax(0, 1fr); grid-template-areas: "students summary" "students main"; }
+    .evaluation-metrics { flex-direction: row; justify-content: flex-end; }
+    .evaluation-metric { width: auto; }
+}
 @media (max-width: 900px) {
-    .grading { grid-template-columns: 1fr; }
+    .grading { grid-template-columns: 1fr; grid-template-areas: "students" "summary" "main"; }
     .student-list { position: static; max-height: 15rem; }
+    .evaluation-summary { top: .5rem; }
 }
 @media (max-width: 640px) {
     .view-switch { justify-content: stretch; }
