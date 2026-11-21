@@ -468,6 +468,12 @@ button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active {
     .evaluation-metrics { flex-direction: row; justify-content: flex-end; }
     .evaluation-metric { width: auto; }
     .evaluation-summary { top: .5rem; }
+    .evaluation-summary.menu-open { position: static; }
+    .evaluation-popover {
+        position: static; width: 100%; max-height: min(48vh, 440px); margin-top: .75rem;
+        box-shadow: none;
+    }
+    .evaluation-field-list { max-height: calc(min(48vh, 440px) - 3.2rem); }
 }
 @media (max-width: 640px) {
     .grading-main.report-view { padding: .75rem; }
@@ -480,8 +486,8 @@ button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active {
     .report-absence { flex-direction: column; gap: 0; }
     .evaluation-metrics { justify-content: stretch; }
     .evaluation-metric { flex: 1 1 30%; justify-content: center; padding-inline: .4rem; }
-    .evaluation-popover { position: fixed; inset: auto .75rem .75rem; width: auto; max-height: 70vh; }
-    .evaluation-field-list { max-height: calc(70vh - 3.2rem); }
+    .evaluation-popover { position: static; width: 100%; max-height: min(58vh, 440px); margin-top: .65rem; }
+    .evaluation-field-list { max-height: calc(min(58vh, 440px) - 3.2rem); }
     .grade-options { grid-template-columns: repeat(3, minmax(64px, 1fr)); max-width: none; }
     .rating-head { display: none; }
     .rating-row { grid-template-columns: repeat(var(--steps), minmax(0, 1fr)); }

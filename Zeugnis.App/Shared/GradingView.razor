@@ -40,7 +40,7 @@ else
         {
             var summaryProgress = Context.ProgressOf(summaryStudent);
             var summaryFields = Context.FieldStatusesFor(summaryStudent);
-            <aside class="evaluation-summary card" aria-label="Bewertungsfortschritt">
+            <aside class="evaluation-summary card @(_fieldList is null ? "" : "menu-open")" aria-label="Bewertungsfortschritt">
                 <div class="evaluation-metrics">
                     <div class="evaluation-metric total"><span>Zu bewerten</span><strong>@summaryProgress.Total</strong></div>
                     <button class="evaluation-metric open @(_fieldList == "open" ? "active" : "")" type="button"
