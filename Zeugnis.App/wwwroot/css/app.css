@@ -343,10 +343,12 @@ ol.items textarea, ol.items input { flex: 1; min-height: 40px; padding: .45rem .
 }
 
 .grade-section h3 { margin: 0 0 .75rem; font-size: 1.08rem; }
+.grade-section.incomplete-element { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn-fg) 32%, var(--border)); }
 .rating-table { display: flex; flex-direction: column; gap: .35rem; }
 .rating-head, .rating-row { display: grid; grid-template-columns: minmax(0, 1fr) repeat(var(--steps), 84px); gap: .35rem; align-items: stretch; }
 .rating-head span { font-size: .72rem; color: var(--muted); text-align: center; line-height: 1.2; align-self: end; }
 .rating-row { padding: .25rem 0; border-top: 1px solid var(--border); }
+.rating-row.empty { padding: .4rem .55rem; border-top-color: transparent; border-radius: 10px; background: var(--warn-bg); }
 .rating-row .criterion { align-self: center; padding-right: .5rem; }
 .rating-row.empty .criterion::after { content: " •"; color: var(--warn-fg); }
 .choice {

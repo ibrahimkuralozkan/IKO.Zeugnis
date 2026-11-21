@@ -66,7 +66,9 @@ else
                 @foreach (var g in sections)
                 {
                     var scale = Context.CatalogFor(st)!.RatingScale;
-                    <section class="card grade-section" @key="@($"{st.Id}|{g.Section.Kind}|{g.Section.Key}")">
+                    var incompleteElement = g.Section.Kind != FieldKind.Rating && g.Keys.Any(key => Context.Get(st, key).Length == 0);
+                    <section class="card grade-section @(incompleteElement ? "incomplete-element" : "")"
+                             @key="@($"{st.Id}|{g.Section.Kind}|{g.Section.Key}")">
                         <h3>@g.Section.Title</h3>
                         @if (Context.AuthorsOf(st, g.Keys) is { Count: > 0 } authors)
                         {
