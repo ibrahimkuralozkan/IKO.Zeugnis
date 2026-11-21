@@ -73,6 +73,7 @@ dotnet run --project Zeugnis.App --launch-profile http   # http://localhost:5032
 - [x] **0.23.1:** Değerlendirme sayfası mevcut ekran genişliğini kullanacak şekilde 1680 px'e kadar genişletildi; öğrenci/ilerleme yan panelleri inceltildi ve karne alanındaki 980 px sınırı kaldırıldı
 - [x] **0.24:** `Formularansicht` ve görünüm değiştirme düğmeleri kaldırıldı; Lehrkraft ve Verwaltung değerlendirmeleri doğrudan tek `Zeugnisansicht` içinde açılır
 - [x] **0.24.1:** Öğrenci değiştirme yalnız soldaki listede bırakıldı; üst/alt önceki-sonraki kontrolleri ve gereksiz interaktif çalışma görünümü açıklaması kaldırıldı
+- [x] **0.25:** Karne başlığı PDF şablonundaki hiyerarşiye uyarlandı: büyük okul adı, adres/telefon, `Zeugnis Klasse N`, öğrenci adı; her Ankreuzbewertung bölümünde öğrenci adı tekrar gösterilir
 - [ ] Sonra: iPad gerçek cihaz testi, Word tag yardım ekranı, yeni yarıyıl için okul dosyası devri
 
 ## Kurallar

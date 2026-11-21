@@ -75,6 +75,7 @@ else
             {
                 var p = Context.ProgressOf(st);
                 var sections = Context.SectionsFor(st);
+                var schoolGrade = Context.CatalogFor(st)?.Grade;
                 <div class="student-head card">
                     <div class="who">
                         <h2>@st.FirstName @st.LastName</h2>
@@ -87,7 +88,14 @@ else
 
                 <header class="report-preview-head">
                     <p class="report-school">@(string.IsNullOrWhiteSpace(SchoolName) ? "Schule" : SchoolName)</p>
-                    <h1>Zeugnis</h1>
+                    @if (!string.IsNullOrWhiteSpace(SchoolAddressLine1) || !string.IsNullOrWhiteSpace(SchoolAddressLine2) || !string.IsNullOrWhiteSpace(SchoolPhone))
+                    {
+                        <p class="report-address">
+                            @SchoolAddressLine1@if (!string.IsNullOrWhiteSpace(SchoolAddressLine1) && !string.IsNullOrWhiteSpace(SchoolAddressLine2)) {<text>, </text>}@SchoolAddressLine2
+                            @if (!string.IsNullOrWhiteSpace(SchoolPhone)) {<text> · Tel. @SchoolPhone</text>}
+                        </p>
+                    }
+                    <h1>Zeugnis@(schoolGrade is > 0 ? $" Klasse {schoolGrade}" : "")</h1>
                     <p>für</p>
                     <h2>@st.FirstName @st.LastName</h2>
                     <div class="report-meta">
@@ -113,6 +121,10 @@ else
                              class="card grade-section @(incompleteElement ? "incomplete-element" : "")"
                              @key="@($"{st.Id}|{g.Section.Kind}|{g.Section.Key}")">
                         <h3>@g.Section.Title</h3>
+                        @if (g.Section.Kind == FieldKind.Rating)
+                        {
+                            <p class="section-student">@st.FirstName @st.LastName</p>
+                        }
                         @if (Context.AuthorsOf(st, g.Keys) is { Count: > 0 } authors)
                         {
                             <p class="muted small author">eingetragen von @string.Join(", ", authors)</p>
@@ -209,6 +221,9 @@ else
 @code {
     [Parameter, EditorRequired] public GradingContext Context { get; set; } = default!;
     [Parameter] public string SchoolName { get; set; } = string.Empty;
+    [Parameter] public string SchoolAddressLine1 { get; set; } = string.Empty;
+    [Parameter] public string SchoolAddressLine2 { get; set; } = string.Empty;
+    [Parameter] public string SchoolPhone { get; set; } = string.Empty;
     /// <summary>Wird nach jeder Änderung aufgerufen (Speicherstatus, Entwurf).</summary>
     [Parameter] public EventCallback OnChanged { get; set; }
 

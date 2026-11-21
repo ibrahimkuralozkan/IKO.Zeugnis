@@ -97,6 +97,9 @@ public sealed class AssignmentFile
     public Guid SchoolFileId { get; set; }
     public Term Term { get; set; } = new("", 1);
     public string SchoolName { get; set; } = "";
+    public string SchoolAddressLine1 { get; set; } = "";
+    public string SchoolAddressLine2 { get; set; } = "";
+    public string SchoolPhone { get; set; } = "";
     public Guid TeacherId { get; set; }
     public string TeacherName { get; set; } = "";
     /// <summary>Anzeige, z. B. „3a“ oder „3a, 3b“.</summary>
