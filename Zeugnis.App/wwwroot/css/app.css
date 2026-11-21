@@ -402,6 +402,8 @@ button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active {
 
 /* Karne görünümü: aynı kontroller, tek parça kâğıt hissi. */
 .grading-main.report-view {
+    --primary: #4f46e5; --primary-text: #ffffff; --warn-bg: #fff6e0; --warn-fg: #7a5200;
+    color-scheme: light;
     width: 100%; max-width: none; padding: 1.35rem 1.25rem 2rem; border: 1px solid #d7dbe3; border-radius: 3px;
     background: #fff; color: #182033; box-shadow: 0 12px 32px rgb(24 32 51 / 14%);
 }
