@@ -67,6 +67,7 @@ code { font-size: .9em; background: var(--info-bg); color: var(--info-fg); paddi
 }
 .version { color: var(--muted); font-size: .85rem; }
 .content { width: 100%; max-width: 1100px; margin: 0 auto; padding: 1.5rem max(1rem, env(safe-area-inset-left)) 3rem; min-width: 0; }
+.content:has(.grading) { max-width: 1680px; }
 h1:focus { outline: none; } /* FocusOnNavigate setzt den Fokus auf h1 */
 
 /* Seitenleiste: Lehrkraft / Verwaltung */
@@ -302,7 +303,7 @@ ol.items textarea, ol.items input { flex: 1; min-height: 40px; padding: .45rem .
 .plain-list { margin: 0; padding-left: 1.1rem; }
 .plain-list li { margin: .25rem 0; }
 
-.grading { display: grid; grid-template-columns: 260px minmax(0, 1fr) 178px; grid-template-areas: "students main summary"; gap: 1rem; align-items: start; }
+.grading { display: grid; grid-template-columns: 240px minmax(0, 1fr) 170px; grid-template-areas: "students main summary"; gap: .75rem; align-items: start; }
 .student-list { grid-area: students; position: sticky; top: .75rem; padding: .9rem; max-height: calc(100vh - 1.5rem); overflow-y: auto; margin: 0; }
 .grading-main { grid-area: main; min-width: 0; }
 .student-list .list-head { display: flex; justify-content: space-between; align-items: baseline; }
@@ -401,7 +402,7 @@ button.evaluation-metric:hover:not(:disabled), button.evaluation-metric.active {
 
 /* Karne görünümü: aynı kontroller, tek parça kâğıt hissi. */
 .grading-main.report-view {
-    max-width: 980px; padding: 1.35rem 2.2rem 2rem; border: 1px solid #d7dbe3; border-radius: 3px;
+    width: 100%; max-width: none; padding: 1.35rem 1.25rem 2rem; border: 1px solid #d7dbe3; border-radius: 3px;
     background: #fff; color: #182033; box-shadow: 0 12px 32px rgb(24 32 51 / 14%);
 }
 .report-view .view-switch { margin: -.35rem -1rem 1rem; }
