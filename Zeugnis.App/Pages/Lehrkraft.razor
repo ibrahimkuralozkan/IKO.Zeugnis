@@ -44,15 +44,6 @@ else
         <span class="draft-state @Session.Draft.ToString().ToLowerInvariant()">@DraftText()</span>
     </div>
 
-    @if (Session.RestoredFromUtc is { } restored && !_restoredSeen)
-    {
-        <div class="alert info">
-            Zwischenstand vom @restored.ToLocalTime().ToString("dd.MM.yyyy HH:mm") wurde wiederhergestellt.
-            <div>
-                <button class="btn" @onclick="() => _restoredSeen = true">OK</button>
-            </div>
-        </div>
-    }
     @if (a.ExpiresUtc < DateTimeOffset.UtcNow)
     {
         <p class="alert warn">Die Abgabefrist ist abgelaufen. Eine Rückgabe wird von der Verwaltung nicht mehr angenommen. Bitte neuen Auftrag anfordern.</p>
@@ -104,7 +95,6 @@ else
 
 @code {
     private bool _busy;
-    private bool _restoredSeen;
     private string? _response;
     private Progress _responseProgress;
     private string? _error;
@@ -140,6 +130,5 @@ else
     {
         await Session.CloseAsync();
         _response = null;
-        _restoredSeen = false;
     }
 }
